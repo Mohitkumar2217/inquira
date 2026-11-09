@@ -140,7 +140,7 @@ export default function Builder() {
   const link = `${typeof location !== "undefined" ? location.origin : ""}/f/${inq.slug}`;
 
   return (
-    <div className="builder h-screen min-h-[560px] flex flex-col bg-[var(--tf-panel-bg)] text-[var(--tf-text)]" style={{ "--accent": inq.accent } as AccentStyle}>
+    <div className="builder h-screen min-h-[560px] flex flex-col bg-[var(--tf-panel-bg)] text-[var(--tf-text)] zoom-out-enter" style={{ "--accent": inq.accent } as AccentStyle}>
       <header className="builder-header grid h-[46px] flex-[0_0_46px] grid-cols-[minmax(260px,1fr)_auto_minmax(260px,1fr)] items-center gap-[14px] border-b border-[var(--tf-border)] bg-white px-[18px] dark:bg-[#26232a] max-[900px]:h-[78px] max-[900px]:flex-[0_0_78px] max-[900px]:grid-cols-[minmax(180px,1fr)_auto] max-[900px]:gap-2 max-[900px]:px-2.5 max-[600px]:grid-cols-[minmax(0,1fr)_auto]">
         <div className="builder-breadcrumbs flex min-w-0 items-center gap-2.5 text-[13px] text-[#56565e] max-[600px]:gap-1.5">
           <Link href="/" className="logo text-base text-[#262627] dark:text-[#f2eff3]">Inquira</Link>

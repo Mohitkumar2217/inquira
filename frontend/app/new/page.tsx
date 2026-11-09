@@ -13,17 +13,21 @@ export default function NewForm() {
   const toast = useToast();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [isZoomingOut, setIsZoomingOut] = useState(false);
 
   const make = async (prompts: PromptDTO[]) => {
     if (busy) return;
     setBusy(true);
+    setIsZoomingOut(true);
     try {
       const workspaceId = sessionStorage.getItem("inquira.workspace");
       const d = await call<Inquiry>("/api/inquiries", send("POST", {
         title: "Untitled form", prompts, workspace_id: workspaceId ? Number(workspaceId) : undefined,
       }));
       sessionStorage.removeItem("inquira.workspace");
-      router.push(`/builder/${d.id}`);
+      setTimeout(() => {
+        router.push(`/builder/${d.id}`);
+      }, 180);
     } catch (error: unknown) { toast(errorMessage(error)); setBusy(false); }
   };
   const generate = () => {
@@ -39,7 +43,7 @@ export default function NewForm() {
         <div className="flex items-center gap-2 max-[700px]:gap-1"><button className="h-8 w-8 rounded-full border-[1.5px] border-[var(--tf-border-mid)] bg-white text-[14px] text-[var(--tf-text)] dark:border-[#4b4550] dark:text-[#e4e4e7]" onClick={() => toast("Help is coming soon")}>?</button><ThemeToggleButton /><div className="grid h-10 w-10 place-items-center rounded-full bg-[#f9d3da] text-[14px] font-semibold">DC</div></div>
       </header>
       <div className="grid flex-1 place-items-center overflow-hidden rounded-xl border border-[var(--tf-border)] bg-[var(--tf-panel-bg)] p-5 dark:bg-[#1d1b20]">
-        <div className="w-full max-w-[640px] text-center">
+        <div className={`w-full max-w-[640px] text-center ${isZoomingOut ? "zoom-out-exit" : "zoom-out-enter"}`}>
           <div className="text-[#767676] dark:text-[#b4acb9]">Inquira AI</div>
           <h1 className="mb-[26px] text-[clamp(26px,4vw,36px)] font-medium tracking-[-.03em] text-[var(--tf-text)] dark:text-[#f2eff3]">What would you like to create?</h1>
           <div className="rounded-lg border-[3px] border-[#f1def6] bg-white p-[3px] text-left dark:bg-[#222225] dark:text-[#f4f4f5]">
