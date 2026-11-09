@@ -1,7 +1,11 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
-KINDS = ["short_text", "long_text", "choice", "dropdown", "email", "number", "yes_no", "rating"]
+KINDS = [
+    "short_text", "long_text", "choice", "dropdown", "email", "number", "yes_no", "rating",
+    "contact_info", "phone", "address", "url", "checkbox", "legal", "nps", "opinion_scale",
+    "ranking", "matrix", "date",
+]
 
 
 class PromptIn(BaseModel):

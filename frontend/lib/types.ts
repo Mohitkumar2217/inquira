@@ -1,4 +1,5 @@
-export type Kind = "short_text" | "long_text" | "choice" | "dropdown" | "email" | "number" | "yes_no" | "rating";
+export type Kind = "short_text" | "long_text" | "choice" | "dropdown" | "email" | "number" | "yes_no" | "rating" |
+  "contact_info" | "phone" | "address" | "url" | "checkbox" | "legal" | "nps" | "opinion_scale" | "ranking" | "matrix" | "date";
 
 export interface PromptDTO {
   id: number; position?: number; kind: Kind; label: string; hint: string; mandatory: boolean; choices: string[];
@@ -21,5 +22,16 @@ export const KIND_META: { kind: Kind; name: string; icon: string }[] = [
   { kind: "number", name: "Number", icon: "#" },
   { kind: "yes_no", name: "Yes / No", icon: "✓" },
   { kind: "rating", name: "Rating", icon: "★" },
+  { kind: "contact_info", name: "Contact info", icon: "◉" },
+  { kind: "phone", name: "Phone number", icon: "☎" },
+  { kind: "address", name: "Address", icon: "⌖" },
+  { kind: "url", name: "Website", icon: "↗" },
+  { kind: "checkbox", name: "Checkboxes", icon: "☑" },
+  { kind: "legal", name: "Consent", icon: "⚖" },
+  { kind: "nps", name: "Net Promoter Score", icon: "◔" },
+  { kind: "opinion_scale", name: "Opinion scale", icon: "▂▄" },
+  { kind: "ranking", name: "Ranking", icon: "①" },
+  { kind: "matrix", name: "Matrix", icon: "⣿" },
+  { kind: "date", name: "Date", icon: "▦" },
 ];
 export const kindName = (k: Kind) => KIND_META.find((m) => m.kind === k)?.name ?? k;

@@ -11,6 +11,31 @@ export function useTheme() {
   return context;
 }
 
+export function ThemeToggleButton() {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className="theme-toggle-header grid size-[34px] shrink-0 place-items-center rounded-full border border-[var(--tf-border-mid)] bg-white text-[var(--tf-text)] transition-colors duration-150 hover:-translate-y-px hover:bg-[#f4f1f5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a7590] dark:border-[#554d5a] dark:bg-[#302c34] dark:text-[#f2eff3] dark:hover:bg-[#3a3540]"
+      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+      aria-pressed={theme === "dark"}
+      title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+    >
+      <svg className="size-[18px] stroke-current [stroke-width:1.8] [stroke-linecap:round] [stroke-linejoin:round]" aria-hidden="true" viewBox="0 0 24 24" fill="none">
+        {theme === "dark" ? (
+          <>
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+          </>
+        ) : (
+          <path d="M20.2 15.1A8.5 8.5 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15.1Z" />
+        )}
+      </svg>
+    </button>
+  );
+}
+
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
 
@@ -31,15 +56,6 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       {children}
-      <button
-        type="button"
-        onClick={toggleTheme}
-        className="theme-toggle fixed bottom-5 left-5 z-[60] inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-lg text-slate-800 shadow-lg transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-        title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-      >
-        <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
-      </button>
     </ThemeContext.Provider>
   );
 }

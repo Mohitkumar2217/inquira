@@ -33,7 +33,7 @@ backend/app
   database.py  engine/session (SQLite, foreign keys ON)
   models.py    ORM tables
   schemas.py   request bodies (pydantic)
-  rules.py     server-side answer validation (required, email, number, choice, rating…)
+  rules.py     server-side answer validation for every supported prompt kind
   seed.py      sample data
   main.py      routes: creator API + public respondent API
 frontend
@@ -46,7 +46,8 @@ frontend
 ```
 The builder saves changes explicitly with one `PUT`; publishing also saves pending edits first. The server
 upserts prompts by id (new prompts use ids ≤ 0), removes missing ones and stores the order in `position`.
-Existing replies stay linked to kept prompts.
+Existing replies stay linked to kept prompts. The shared `Runner` powers both the live preview and public
+form, while browser and server validation enforce the same answer rules.
 
 ## Database schema
 | table | columns |
@@ -57,7 +58,21 @@ Existing replies stay linked to kept prompts.
 | replies | id, inquiry_id → inquiries (cascade), submitted_at |
 | reply_items | id, reply_id → replies (cascade), prompt_id → prompts (cascade), value; UNIQUE(reply_id, prompt_id) |
 
-Prompt kinds: short_text, long_text, choice, dropdown, email, number, yes_no, rating.
+Prompt kinds: short_text, long_text, choice, dropdown, email, number, yes_no, rating, contact_info, phone,
+address, url, checkbox, legal, nps, opinion_scale, ranking, matrix, date.
+
+Structured answers (contact info, checkbox selections, ranking, and matrix responses) are stored as JSON
+text in `reply_items.value`; results and CSV export format those values for reading.
+
+## Tests
+Run the backend validation suite from `backend/`:
+```bash
+python -m unittest discover -s tests -v
+```
+Run the frontend production build from `frontend/`:
+```bash
+npm run build
+```
 
 ## API overview
 Creator: `GET/POST /api/workspaces`, `PATCH/DELETE /api/workspaces/{id}`, `POST …/leave`;
@@ -69,8 +84,8 @@ Public: `GET /api/public/{slug}`, `POST /api/public/{slug}/replies` (422 with pe
 ## Assumptions
 - A single default creator is assumed; there is no authentication or team membership. Leaving or deleting a
   non-private workspace moves its forms into the private workspace so form data is preserved.
-- Answers are stored as text and validated by kind on the server (and mirrored on the client).
-- Logic jumps, integrations, collaboration, file/payment types and custom fonts are "Coming soon" placeholders.
+- Answers are stored as text (JSON text for structured answers) and validated by kind on the server and client.
+- Logic jumps, integrations, collaboration, file/payment uploads, AI services, and custom fonts/backgrounds are placeholders.
 - Included extras: CSV export, accent colour theme, editable thank-you screen.
 - The UI is an original implementation inspired by conversational form workflows; it does not use Typeform's
   proprietary assets or attempt pixel-exact reproduction.

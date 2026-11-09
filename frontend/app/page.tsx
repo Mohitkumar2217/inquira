@@ -3,8 +3,10 @@ import { DragEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Modal from "@/components/Modal";
+import Dropdown from "@/components/Dropdown";
+import { ThemeToggleButton } from "@/components/ThemeProvider";
 import { useToast } from "@/components/Toasts";
-import { call, send } from "@/lib/api";
+import { call, errorMessage, send } from "@/lib/api";
 import { Inquiry, Workspace } from "@/lib/types";
 
 const TABS = ["Forms", "Contacts", "Automations", "Insights", "Pages", "Research Flow"];
@@ -49,14 +51,14 @@ export default function Dashboard() {
 
   const load = async () => {
     try { setRows(await call<Inquiry[]>("/api/inquiries")); }
-    catch (e: any) { toast(e.message); }
+    catch (error: unknown) { toast(errorMessage(error)); }
   };
   const loadWorkspaces = async () => {
     try {
       const data = await call<Workspace[]>("/api/workspaces");
       setWorkspaces(data);
       setSelectedWorkspaceId((current) => current ?? data.find((w) => w.is_private)?.id ?? data[0]?.id ?? null);
-    } catch (e: any) { toast(e.message); }
+    } catch (error: unknown) { toast(errorMessage(error)); }
   };
   useEffect(() => { void load(); void loadWorkspaces(); }, []);
 
@@ -77,10 +79,10 @@ export default function Dashboard() {
     if (selectedWorkspaceId !== null) sessionStorage.setItem("inquira.workspace", String(selectedWorkspaceId));
     router.push("/new");
   };
-  const act = async (fn: () => Promise<any>, msg: string) => {
+  const act = async (fn: () => Promise<unknown>, msg: string) => {
     setMenu(null);
     setSubmenu(null);
-    try { await fn(); toast(msg); void load(); void loadWorkspaces(); } catch (e: any) { toast(e.message); }
+    try { await fn(); toast(msg); void load(); void loadWorkspaces(); } catch (error: unknown) { toast(errorMessage(error)); }
   };
   const soon = (w: string) => toast(`${w} is coming soon`);
   const copyLink = (s: string) => { setMenu(null); navigator.clipboard?.writeText(`${location.origin}/f/${s}`); toast("Link copied to clipboard"); };
@@ -92,7 +94,7 @@ export default function Dashboard() {
       await loadWorkspaces();
       setSelectedWorkspaceId(workspace.id);
       toast("Workspace created");
-    } catch (e: any) { toast(e.message); }
+    } catch (error: unknown) { toast(errorMessage(error)); }
   };
   const renameWorkspace = async () => {
     if (!workspaceToRename) return;
@@ -102,7 +104,7 @@ export default function Dashboard() {
       setWorkspaceName("");
       setWorkspaces((current) => current.map((workspace) => workspace.id === updated.id ? { ...workspace, name: updated.name } : workspace));
       toast("Workspace renamed");
-    } catch (e: any) { toast(e.message); }
+    } catch (error: unknown) { toast(errorMessage(error)); }
   };
   const removeWorkspace = async () => {
     if (!workspaceToRemove) return;
@@ -115,7 +117,7 @@ export default function Dashboard() {
       await load();
       await loadWorkspaces();
       toast(action === "leave" ? "You left the workspace; its forms were moved to My workspace" : "Workspace deleted; its forms were moved to My workspace");
-    } catch (e: any) { toast(e.message); }
+    } catch (error: unknown) { toast(errorMessage(error)); }
   };
   const moveForm = async (formId: number, workspaceId: number) => {
     setDraggingId(null);
@@ -125,7 +127,7 @@ export default function Dashboard() {
       await load();
       await loadWorkspaces();
       toast("Form moved to workspace");
-    } catch (e: any) { toast(e.message); }
+    } catch (error: unknown) { toast(errorMessage(error)); }
   };
   const startFormDrag = (event: DragEvent<HTMLDivElement>, form: Inquiry) => {
     event.dataTransfer.effectAllowed = "move";
@@ -145,212 +147,218 @@ export default function Dashboard() {
   };
 
   const Menu = ({ f }: { f: Inquiry }) => (
-    <div className="tf-menu-wrap" onClick={(e) => e.stopPropagation()}>
-      <button className="tf-dots" aria-label={`Actions for ${f.title}`} onClick={() => { setMenu(menu === f.id ? null : f.id); setSubmenu(null); }}>···</button>
+    <div className="tf-menu-wrap relative z-20" onClick={(e) => e.stopPropagation()}>
+      <button className="tf-dots rounded-md border-0 bg-transparent px-2 py-1 text-xl tracking-[1px] text-[var(--tf-muted)] hover:bg-[#eee] dark:hover:bg-[#303035]" aria-label={`Actions for ${f.title}`} onClick={() => { setMenu(menu === f.id ? null : f.id); setSubmenu(null); }}>···</button>
       {menu === f.id && (<>
-        <div className="tf-menu-bg" onClick={() => setMenu(null)} />
-        <div className="tf-menu">
-          {f.status === "published" && <button onClick={() => copyLink(f.slug)}>Copy link</button>}
-          <Link href={`/builder/${f.id}`}>Content</Link>
-          <button onClick={() => { setMenu(null); soon("Workflow"); }}>Workflow</button>
-          <button onClick={() => { setMenu(null); soon("Connect"); }}>Connect</button>
-          <hr />
-          <button onClick={() => { setMenu(null); setRenaming(f); setName(f.title); }}>Rename</button>
-          <button onClick={() => act(() => call(`/api/inquiries/${f.id}/duplicate`, send("POST")), "Form duplicated")}>Duplicate</button>
-          <div className="tf-submenu-wrap">
-            <button onClick={() => setSubmenu(submenu?.id === f.id && submenu.action === "copy" ? null : { id: f.id, action: "copy" })}>Copy to <span>›</span></button>
-            {submenu?.id === f.id && submenu.action === "copy" && <div className="tf-submenu">
-              {workspaces.filter((w) => w.id !== f.workspace_id).map((w) => <button key={w.id} onClick={() => act(
+        <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setMenu(null)} />
+        <div className="absolute right-0 top-[34px] z-[21] flex min-w-[220px] flex-col overflow-visible rounded-lg border border-[var(--tf-border)] bg-white p-1.5 text-[var(--tf-text)] shadow-[0_8px_24px_rgba(0,0,0,.12)] dark:border-[#39353e] dark:bg-[#26232a]">
+          {f.status === "published" && <button className="rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" onClick={() => copyLink(f.slug)}>Copy link</button>}
+          <Link className="rounded-md px-3 py-2.5 text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" href={`/builder/${f.id}`}>Content</Link>
+          <button className="rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" onClick={() => { setMenu(null); soon("Workflow"); }}>Workflow</button>
+          <button className="rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" onClick={() => { setMenu(null); soon("Connect"); }}>Connect</button>
+          <hr className="my-1.5 w-full border-0 border-t border-[var(--tf-border)]" />
+          <button className="rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" onClick={() => { setMenu(null); setRenaming(f); setName(f.title); }}>Rename</button>
+          <button className="rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" onClick={() => act(() => call(`/api/inquiries/${f.id}/duplicate`, send("POST")), "Form duplicated")}>Duplicate</button>
+          <div className="tf-submenu-wrap relative">
+            <button className="flex w-full items-center justify-between rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" onClick={() => setSubmenu(submenu?.id === f.id && submenu.action === "copy" ? null : { id: f.id, action: "copy" })}>Copy to <span>›</span></button>
+            {submenu?.id === f.id && submenu.action === "copy" && <div className="tf-submenu absolute left-full top-0 z-[22] flex min-w-[180px] flex-col rounded-lg border border-[var(--tf-border)] bg-white p-1.5 shadow-[0_8px_24px_rgba(0,0,0,.12)] dark:border-[#39353e] dark:bg-[#26232a] max-[620px]:left-auto max-[620px]:right-full">
+              {workspaces.filter((w) => w.id !== f.workspace_id).map((w) => <button className="rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm text-[var(--tf-text)] hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" key={w.id} onClick={() => act(
                 () => call(`/api/inquiries/${f.id}/copy-to/${w.id}`, send("POST")), `Copied to ${w.name}`)}>{w.name}</button>)}
-              {workspaces.length < 2 && <span className="tf-submenu-empty">Create another workspace first</span>}
+              {workspaces.length < 2 && <span className="px-3 py-2 text-xs text-[var(--tf-muted)]">Create another workspace first</span>}
             </div>}
           </div>
-          <div className="tf-submenu-wrap">
-            <button onClick={() => setSubmenu(submenu?.id === f.id && submenu.action === "move" ? null : { id: f.id, action: "move" })}>Move to <span>›</span></button>
-            {submenu?.id === f.id && submenu.action === "move" && <div className="tf-submenu">
-              {workspaces.filter((w) => w.id !== f.workspace_id).map((w) => <button key={w.id} onClick={() => act(
+          <div className="tf-submenu-wrap relative">
+            <button className="flex w-full items-center justify-between rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" onClick={() => setSubmenu(submenu?.id === f.id && submenu.action === "move" ? null : { id: f.id, action: "move" })}>Move to <span>›</span></button>
+            {submenu?.id === f.id && submenu.action === "move" && <div className="tf-submenu absolute left-full top-0 z-[22] flex min-w-[180px] flex-col rounded-lg border border-[var(--tf-border)] bg-white p-1.5 shadow-[0_8px_24px_rgba(0,0,0,.12)] dark:border-[#39353e] dark:bg-[#26232a] max-[620px]:left-auto max-[620px]:right-full">
+              {workspaces.filter((w) => w.id !== f.workspace_id).map((w) => <button className="rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm text-[var(--tf-text)] hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" key={w.id} onClick={() => act(
                 () => call(`/api/inquiries/${f.id}/workspace`, send("PATCH", { workspace_id: w.id })), `Moved to ${w.name}`)}>{w.name}</button>)}
-              {workspaces.length < 2 && <span className="tf-submenu-empty">Create another workspace first</span>}
+              {workspaces.length < 2 && <span className="px-3 py-2 text-xs text-[var(--tf-muted)]">Create another workspace first</span>}
             </div>}
           </div>
-          <hr />
-          <button className="red" onClick={() => { setMenu(null); setDeleting(f); }}>Delete</button>
+          <hr className="my-1.5 w-full border-0 border-t border-[var(--tf-border)]" />
+          <button className="rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm text-[#b43e32] hover:bg-[#f3f3f3] dark:hover:bg-[#37313b]" onClick={() => { setMenu(null); setDeleting(f); }}>Delete</button>
         </div>
       </>)}
     </div>
   );
-  const Thumb = ({ f }: { f: Inquiry }) => <div className="tf-thumb" style={{ background: f.accent }} />;
+  const Thumb = ({ f }: { f: Inquiry }) => <div className="h-10 w-10 rounded-lg" style={{ background: f.accent }} />;
 
   return (
-    <div className="tf-page">
-      <header className="tf-top">
-        <div className="row center gap">
-          <div className="tf-mark" /><div className="tf-ws-icon">2</div>
-          <div className="tf-org-wrap">
-            <button className="tf-ws-name" onClick={() => setOrg(!org)}>default-creator {org ? "⌃" : "⌄"}</button>
+    <div className="flex min-h-screen flex-col bg-[var(--tf-panel-bg)] px-[18px] pb-[18px] text-[var(--tf-text)] max-[700px]:px-[10px] max-[700px]:pb-[10px]">
+      <header className="flex h-[60px] items-center justify-between border-b border-[var(--tf-border)] bg-white px-5 dark:border-[#39353e] dark:bg-[#26232a] max-[700px]:h-auto max-[700px]:min-h-[60px] max-[700px]:gap-2">
+        <div className="flex items-center gap-2">
+          <div className="mr-0.5 h-10 w-[14px] rounded-[7px] bg-[var(--tf-purple)]" /><div className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--tf-purple)] text-lg text-white">2</div>
+          <div className="tf-org-wrap relative">
+            <button className="tf-ws-name rounded-md border-0 bg-transparent px-1 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#303035]" onClick={() => setOrg(!org)}>
+              default-creator
+              <svg className={"tf-chevron" + (org ? " up" : "")} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="m4 6 4 4 4-4" />
+              </svg>
+            </button>
             {org && (<>
-              <div className="tf-menu-bg" onClick={() => setOrg(false)} />
-              <div className="tf-org">
-                <h5>Organization</h5>
+              <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setOrg(false)} />
+              <div className="tf-org absolute left-0 top-[42px] z-[22] w-[280px] rounded-[18px] border border-[var(--tf-border)] bg-white p-4 text-[var(--tf-text)] shadow-[0_8px_30px_rgba(39,31,42,.14)] dark:border-[#39353e] dark:bg-[#26232a]">
+                <h5 className="mb-2 mt-1 px-2 text-sm font-semibold">Organization</h5>
                 {["Admin settings", "Org members", "Plan & billing", "Developer apps"].map((x) => (
-                  <button key={x} onClick={() => { setOrg(false); soon(x); }}>{x}</button>))}
-                <hr />
-                <h5>All organizations</h5>
-                <div className="tf-org-item"><div className="tf-ws-icon">D</div>
-                  <div><div>default-creator <span className="tf-owner">Owner</span></div><div className="muted">Free Plan - 1 member</div></div></div>
+                  <button className="block w-full rounded-md border-0 bg-transparent px-2 py-2 text-left text-sm text-[var(--tf-text-2)] hover:bg-[#f5f3f5] dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" key={x} onClick={() => { setOrg(false); soon(x); }}>{x}</button>))}
+                <hr className="my-2 w-full border-0 border-t border-[var(--tf-border)]" />
+                <h5 className="mb-2 mt-1 px-2 text-sm font-semibold">All organizations</h5>
+                <div className="flex items-center gap-2.5 rounded-lg p-2"><div className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--tf-purple)] text-lg text-white">D</div>
+                  <div><div className="text-sm">default-creator <span className="ml-1 rounded-full bg-[#f0edf1] px-2 py-0.5 text-xs text-[var(--tf-text-2)] dark:bg-[#39313d] dark:text-[#d5cfd8]">Owner</span></div><div className="text-xs text-[var(--tf-muted)]">Free Plan - 1 member</div></div></div>
               </div>
             </>)}
           </div>
         </div>
-        <div className="row center gap">
-          <button className="tf-link" onClick={() => soon("Integrations")}>Integrations</button>
-          <button className="tf-link" onClick={() => soon("Brand kit")}>Brand kit</button>
-          <button className="tf-plans" onClick={() => soon("Plans")}>View plans</button>
-          <div className="tf-help-wrap">
-            <button className="tf-round" aria-label="Help menu" onClick={() => setHelpOpen(!helpOpen)}>?</button>
+        <div className="flex items-center gap-2 max-[700px]:gap-1">
+          <button className="rounded-md border-0 bg-transparent px-2.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] max-[700px]:hidden" onClick={() => soon("Integrations")}>Integrations</button>
+          <button className="rounded-md border-0 bg-transparent px-2.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] max-[700px]:hidden" onClick={() => soon("Brand kit")}>Brand kit</button>
+          <button className="rounded-md border-0 bg-[var(--tf-green)] px-4 py-2.5 text-base font-semibold text-white hover:bg-[#0d6758] max-[700px]:hidden" onClick={() => soon("Plans")}>View plans</button>
+          <div className="tf-help-wrap relative">
+            <button className="tf-round grid h-8 w-8 place-items-center rounded-full border border-[var(--tf-border-mid)] bg-white text-sm text-[var(--tf-text)] dark:bg-[#26232a]" aria-label="Help menu" onClick={() => setHelpOpen(!helpOpen)}>?</button>
             {helpOpen && (<>
-              <div className="tf-menu-bg" onClick={() => setHelpOpen(false)} />
-              <div className="tf-help-menu">
+              <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setHelpOpen(false)} />
+              <div className="tf-help-menu absolute right-0 top-[34px] z-[22] min-w-[166px] rounded-xl border border-[var(--tf-border)] bg-white p-1.5 shadow-[0_6px_20px_rgba(39,31,42,.14)] dark:border-[#39353e] dark:bg-[#26232a]">
                 {["Help center", "Community", "Give Feedback", "Support"].map((item) =>
-                  <button key={item} onClick={() => { setHelpOpen(false); soon(item); }}>{item}</button>)}
+                  <button className="block w-full rounded-md border-0 bg-transparent px-2.5 py-2.5 text-left text-sm text-[var(--tf-text-2)] hover:bg-[#f5f3f5] dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" key={item} onClick={() => { setHelpOpen(false); soon(item); }}>{item}</button>)}
               </div>
             </>)}
           </div>
-          <div className="tf-account-wrap">
-            <button className="tf-avatar" aria-label="Account menu" onClick={() => setProfileOpen(!profileOpen)}>M2</button>
+          <ThemeToggleButton />
+          <div className="tf-account-wrap relative">
+            <button className="tf-avatar grid h-10 w-10 place-items-center rounded-full border-0 bg-[#f9d3da] text-sm font-semibold text-[#58444d]" aria-label="Account menu" onClick={() => setProfileOpen(!profileOpen)}>M2</button>
             {profileOpen && (<>
-              <div className="tf-menu-bg" onClick={() => setProfileOpen(false)} />
-              <div className="tf-account-menu">
-                <div className="tf-account-profile">
-                  <span className="tf-avatar">M2</span>
-                  <div><b>Inquira Creator</b><span>creator@example.com</span></div>
+              <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setProfileOpen(false)} />
+              <div className="tf-account-menu absolute right-0 top-12 z-[22] w-[min(344px,calc(100vw-24px))] rounded-[18px] border border-[var(--tf-border)] bg-white px-[18px] py-5 text-[var(--tf-text)] shadow-[0_8px_28px_rgba(39,31,42,.14)] dark:border-[#39353e] dark:bg-[#26232a] max-[620px]:fixed max-[620px]:right-3 max-[620px]:top-14">
+                <div className="tf-account-profile flex items-center gap-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#f9d3da] text-sm font-semibold text-[#58444d]">M2</span>
+                  <div className="flex flex-col gap-1"><b className="text-sm">Inquira Creator</b><span className="text-xs text-[var(--tf-muted)]">creator@example.com</span></div>
                 </div>
-                <hr />
-                <strong>ACCOUNT</strong>
-                <button onClick={() => { setProfileOpen(false); soon("Account settings"); }}>Account settings</button>
-                <hr />
-                <strong>RESOURCES</strong>
+                <hr className="my-2 w-full border-0 border-t border-[var(--tf-border)]" />
+                <strong className="mb-1 mt-2.5 block px-2 text-xs text-[var(--tf-text-2)]">ACCOUNT</strong>
+                <button className="block w-full rounded-md border-0 bg-transparent px-2 py-2.5 text-left text-sm text-[var(--tf-muted)] hover:bg-[#f5f3f5] hover:text-[var(--tf-text)] dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" onClick={() => { setProfileOpen(false); soon("Account settings"); }}>Account settings</button>
+                <hr className="my-2 w-full border-0 border-t border-[var(--tf-border)]" />
+                <strong className="mb-1 mt-2.5 block px-2 text-xs text-[var(--tf-text-2)] dark:text-[#f2eff3]">RESOURCES</strong>
                 {["Support", "Help center", "Community", "Apps & Integrations", "What's New"].map((item) =>
-                  <button key={item} onClick={() => { setProfileOpen(false); soon(item); }}>{item}</button>)}
-                <hr />
-                <button onClick={() => { setProfileOpen(false); soon("Referral rewards"); }}>Refer friends, get rewards</button>
-                <hr />
-                <button onClick={() => { setProfileOpen(false); soon("Homepage"); }}>Homepage</button>
-                <button className="logout" onClick={() => { setProfileOpen(false); soon("Sign out"); }}>Log out</button>
+                  <button className="block w-full rounded-md border-0 bg-transparent px-2 py-2.5 text-left text-sm text-[var(--tf-muted)] hover:bg-[#f5f3f5] hover:text-[var(--tf-text)] dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" key={item} onClick={() => { setProfileOpen(false); soon(item); }}>{item}</button>)}
+                <hr className="my-2 w-full border-0 border-t border-[var(--tf-border)]" />
+                <button className="block w-full rounded-md border-0 bg-transparent px-2 py-2.5 text-left text-sm text-[var(--tf-muted)] hover:bg-[#f5f3f5] hover:text-[var(--tf-text)] dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" onClick={() => { setProfileOpen(false); soon("Referral rewards"); }}>Refer friends, get rewards</button>
+                <hr className="my-2 w-full border-0 border-t border-[var(--tf-border)]" />
+                <button className="block w-full rounded-md border-0 bg-transparent px-2 py-2.5 text-left text-sm text-[var(--tf-muted)] hover:bg-[#f5f3f5] hover:text-[var(--tf-text)] dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" onClick={() => { setProfileOpen(false); soon("Homepage"); }}>Homepage</button>
+                <button className="block w-full rounded-md border-0 bg-transparent px-2 py-2.5 text-left text-sm text-[#b43e32] hover:bg-[#f5f3f5] dark:hover:bg-[#37313b]" onClick={() => { setProfileOpen(false); soon("Sign out"); }}>Log out</button>
               </div>
             </>)}
           </div>
         </div>
       </header>
 
-      <div className="tf-panel">
-        <nav className="tf-tabs">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-[var(--tf-border)] bg-white dark:border-[#39353e] dark:bg-[#1d1b20]">
+        <nav className="flex gap-1.5 border-b border-[var(--tf-border)] bg-white px-4 pt-4 max-[700px]:overflow-x-auto dark:border-[#39353e] dark:bg-[#1d1b20]">
           {TABS.map((t) => (
-            <button key={t} className={t === "Forms" ? "on" : ""} onClick={() => t !== "Forms" && soon(t)}>
-              <span className="tf-tab-icon" aria-hidden="true">{TAB_ICONS[t]}</span>{t}
-              {t === "Insights" && <span className="tf-tab-insights" aria-label="Insights">◇</span>}
-              {t === "Pages" && <span className="tf-beta">Beta</span>}</button>))}
+            <button key={t} className={`whitespace-nowrap rounded-t-md border-0 border-b-[3px] px-3.5 pb-3.5 pt-2.5 text-base ${t === "Forms" ? "border-[var(--tf-purple)] bg-[#ececec] font-semibold text-[#111] dark:border-[#b7a3bf] dark:bg-[#303035] dark:text-white" : "border-transparent bg-transparent text-[#444] hover:bg-[#ececec] dark:text-[#c4c4ca] dark:hover:bg-[#303035]"}`} onClick={() => t !== "Forms" && soon(t)}>
+              <span className="mr-2 inline-block text-[15px] text-[var(--tf-text-2)]" aria-hidden="true">{TAB_ICONS[t]}</span>{t}
+              {t === "Insights" && <span className="ml-2.5 inline-grid h-5 w-5 place-items-center rounded-full border border-[#b7ddd5] text-sm text-[var(--tf-green)]" aria-label="Insights">◇</span>}
+              {t === "Pages" && <span className="ml-2 rounded-[10px] border border-[#9cc3ef] bg-[#eaf3fd] px-2 py-px text-xs text-[#1d5fa8]">Beta</span>}</button>))}
         </nav>
 
-        <div className="tf-body">
-          <aside className="tf-side">
-            <button className="tf-create" onClick={create}>+ Create form</button>
-            <button className="tf-search" onClick={() => { setSearchTerm(""); setSearchOpen(true); }}>
-              <span>⌕</span><span className="tf-search-placeholder">Search</span>
+        <div className="grid min-h-0 flex-1 grid-cols-1 min-[901px]:grid-cols-[250px_minmax(0,1fr)]">
+          <aside className="flex flex-col gap-1.5 border-r border-[var(--tf-border)] bg-[#f7f6f7] p-4 dark:border-[#39353e] dark:bg-[#1d1b20]">
+            <button className="mb-1.5 rounded-[7px] border-0 bg-[var(--tf-purple)] p-3.5 text-[17px] font-semibold text-white hover:bg-[var(--tf-purple-dark)]" onClick={create}>+ Create form</button>
+            <button className="mt-3.5 flex w-full cursor-pointer items-center gap-2.5 rounded-md border-y border-[var(--tf-border)] bg-transparent px-3 py-3.5 text-left text-base text-[var(--tf-muted)]" onClick={() => { setSearchTerm(""); setSearchOpen(true); }}>
+              <span>⌕</span><span className="flex-1">Search</span>
             </button>
-            <div className="tf-ws-head"><span>▦ Workspaces</span>
-              <button aria-label="Create workspace" onClick={() => setWorkspaceOpen(true)}>+</button></div>
-            <button className="tf-private" onClick={() => setPrivateExpanded(!privateExpanded)}>Private <span>{privateExpanded ? "▲" : "▼"}</span></button>
+            <div className="flex items-center justify-between px-3 pb-2 pt-[18px] text-[17px] text-[var(--tf-muted)]"><span>▦ Workspaces</span>
+              <button className="h-10 w-10 rounded-md border border-[var(--tf-border-mid)] bg-white text-xl text-[var(--tf-text)] dark:border-[#48434d] dark:bg-[#222225] dark:text-[#f2eff3]" aria-label="Create workspace" onClick={() => setWorkspaceOpen(true)}>+</button></div>
+            <button className="flex w-full cursor-pointer justify-between border-0 bg-transparent px-3.5 py-3.5 text-left text-base font-semibold text-[var(--tf-text)]" onClick={() => setPrivateExpanded(!privateExpanded)}>Private <span className="text-[11px] text-[var(--tf-muted)]">{privateExpanded ? "▲" : "▼"}</span></button>
             {privateExpanded && workspaces.map((w) => (
-              <button key={w.id} className={"tf-ws-item" + (w.id === selectedWorkspaceId ? " selected" : "")
-                + (w.id === dragTargetId ? " drop-target" : "")}
+              <button key={w.id} className={`flex w-full justify-between rounded-md border-0 px-3 py-3.5 text-left text-base text-[var(--tf-text)] ${w.id === selectedWorkspaceId ? "bg-[#eeecef] dark:bg-[#39343d]" : "bg-transparent hover:bg-[#eeecef] dark:hover:bg-[#303035]"} ${w.id === dragTargetId ? "outline outline-2 outline-offset-1 outline-[#9a7ba4] bg-[#f0eaf2] dark:bg-[#39313d]" : ""}`}
                 onClick={() => setSelectedWorkspaceId(w.id)}
                 onDragOver={(event) => acceptFormDrop(event, w)}
                 onDragLeave={() => setDragTargetId((current) => current === w.id ? null : current)}
                 onDrop={(event) => dropForm(event, w)}
                 aria-label={`${w.name}, ${w.form_count} forms. Drop a form here to move it.`}>
-                <span>{w.name}</span><span>{w.form_count}</span>
+                <span>{w.name}</span><span className="rounded px-1 text-[var(--tf-muted)]">{w.form_count}</span>
               </button>))}
-            <div className="grow" />
-            <div className="tf-usage">
+            <div className="flex-1" />
+            <div className="border-t border-[var(--tf-border)] pt-[18px] text-base text-[var(--tf-muted)]">
               <div>Responses collected</div>
-              <div className="tf-bar"><div style={{ width: `${Math.min(100, (total / RESPONSE_LIMIT) * 100)}%` }} /></div>
-              <div className="tf-count">{total} <small>/ {RESPONSE_LIMIT}</small></div>
-              <button className="tf-chip" onClick={() => soon("Plans")}>Increase response limit</button>
+              <div className="my-2.5 h-1 rounded-sm bg-[#e4e0e5] dark:bg-[#39353e]"><div className="h-full rounded-sm bg-[var(--tf-purple)]" style={{ width: `${Math.min(100, (total / RESPONSE_LIMIT) * 100)}%` }} /></div>
+              <div className="text-xl text-[var(--tf-text)]">{total} <small className="text-[13px] text-[var(--tf-muted)]">/ {RESPONSE_LIMIT}</small></div>
+              <button className="mt-2.5 rounded-md border border-[var(--tf-border-mid)] bg-white px-3 py-1.5 text-sm text-[var(--tf-text)] hover:bg-[#f4f4f4] dark:border-[#48434d] dark:bg-[#29292d] dark:text-[#f2eff3] dark:hover:bg-[#343039]" onClick={() => soon("Plans")}>Increase response limit</button>
             </div>
-            <form className="tf-ai" onSubmit={(event) => { event.preventDefault(); soon("AI assistant"); }}>
-              <button type="button" aria-label="Voice input" onClick={() => soon("Voice input")}>♩</button>
-              <input aria-label="Ask Inquira AI" placeholder="Ask Inquira AI" />
-              <button type="submit" aria-label="Send to Inquira AI">▷</button>
+            <form className="mt-3.5 flex min-h-14 items-center gap-2 rounded-lg border border-[#dcd5df] bg-white p-2 dark:border-[#39353e] dark:bg-[#19191c]" onSubmit={(event) => { event.preventDefault(); soon("AI assistant"); }}>
+              <button className="grid h-7 w-7 flex-none place-items-center rounded-md border-0 bg-transparent text-lg text-[var(--tf-muted)] hover:text-[var(--tf-purple)]" type="button" aria-label="Voice input" onClick={() => soon("Voice input")}>♩</button>
+              <input className="min-w-0 flex-1 border-0 bg-transparent p-2 text-sm text-[var(--tf-text)] outline-none placeholder:text-[var(--tf-muted)]" aria-label="Ask Inquira AI" placeholder="Ask Inquira AI" />
+              <button className="grid h-7 w-7 flex-none place-items-center rounded-md border border-[var(--tf-border)] bg-[#faf9fa] text-lg text-[var(--tf-muted)] hover:text-[var(--tf-purple)] dark:border-[#48434d] dark:bg-[#302c34] dark:text-[#aaa2ae] dark:hover:text-[#d9c9df]" type="submit" aria-label="Send to Inquira AI">▷</button>
             </form>
           </aside>
 
-          <main className="tf-main">
-            <div className="row between center">
-              <div className="row center gap"><h1 className="tf-h1">{selectedWorkspace?.name || "My workspace"}</h1>
-                <div className="tf-menu-wrap">
-                  <button className="tf-dots" aria-label="Workspace options" onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}>···</button>
+          <main className="min-w-0 overflow-auto bg-white p-8 text-[var(--tf-text)] max-[700px]:p-[22px_16px] dark:bg-[#1d1b20]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2"><h1 className="m-0 text-[30px] font-normal text-[var(--tf-text)]">{selectedWorkspace?.name || "My workspace"}</h1>
+                <div className="tf-menu-wrap relative z-20">
+                  <button className="tf-dots rounded-md border-0 bg-transparent px-2 py-1 text-xl tracking-[1px] text-[var(--tf-muted)] hover:bg-[#eee] dark:hover:bg-[#303035]" aria-label="Workspace options" onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}>···</button>
                   {workspaceMenuOpen && selectedWorkspace && (<>
-                    <div className="tf-menu-bg" onClick={() => setWorkspaceMenuOpen(false)} />
-                    <div className="tf-workspace-menu">
-                      <button onClick={() => { setWorkspaceMenuOpen(false); setWorkspaceToRename(selectedWorkspace); setWorkspaceName(selectedWorkspace.name); }}>Rename</button>
-                      <button disabled={selectedWorkspace.is_private} onClick={() => { setWorkspaceMenuOpen(false); setWorkspaceToRemove({ workspace: selectedWorkspace, action: "leave" }); }}>Leave</button>
-                      <button className="red" disabled={selectedWorkspace.is_private} onClick={() => { setWorkspaceMenuOpen(false); setWorkspaceToRemove({ workspace: selectedWorkspace, action: "delete" }); }}>Delete</button>
+                    <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setWorkspaceMenuOpen(false)} />
+                    <div className="tf-workspace-menu absolute left-0 top-[34px] z-[22] min-w-[160px] rounded-xl border border-[var(--tf-border)] bg-white p-1.5 shadow-[0_6px_20px_rgba(39,31,42,.14)] dark:border-[#39353e] dark:bg-[#26232a]">
+                      <button className="block w-full rounded-md border-0 bg-transparent px-2.5 py-2.5 text-left text-sm text-[var(--tf-text-2)] hover:bg-[#f5f3f5] disabled:cursor-not-allowed disabled:opacity-45 dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" onClick={() => { setWorkspaceMenuOpen(false); setWorkspaceToRename(selectedWorkspace); setWorkspaceName(selectedWorkspace.name); }}>Rename</button>
+                      <button className="block w-full rounded-md border-0 bg-transparent px-2.5 py-2.5 text-left text-sm text-[var(--tf-text-2)] hover:bg-[#f5f3f5] disabled:cursor-not-allowed disabled:opacity-45 dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" disabled={selectedWorkspace.is_private} onClick={() => { setWorkspaceMenuOpen(false); setWorkspaceToRemove({ workspace: selectedWorkspace, action: "leave" }); }}>Leave</button>
+                      <button className="block w-full rounded-md border-0 bg-transparent px-2.5 py-2.5 text-left text-sm text-[#b43e32] hover:bg-[#f5f3f5] disabled:cursor-not-allowed disabled:opacity-45 dark:hover:bg-[#37313b]" disabled={selectedWorkspace.is_private} onClick={() => { setWorkspaceMenuOpen(false); setWorkspaceToRemove({ workspace: selectedWorkspace, action: "delete" }); }}>Delete</button>
                     </div>
                   </>)}
                 </div>
-                <button className="tf-link" onClick={() => soon("Invites")}>Invite</button></div>
-              <div className="row center gap">
-                <select className="tf-select" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
-                  <option value="created">Date created</option><option value="updated">Last updated</option><option value="name">Alphabetical</option></select>
-                <div className="tf-toggle">
-                  <button className={view === "list" ? "on" : ""} onClick={() => setView("list")}>☰ List</button>
-                  <button className={view === "grid" ? "on" : ""} onClick={() => setView("grid")}>▦ Grid</button></div>
+                <button className="rounded-md border-0 bg-transparent px-2.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#303035]" onClick={() => soon("Invites")}>Invite</button></div>
+              <div className="flex items-center gap-2">
+                <Dropdown ariaLabel="Sort forms" value={sort} onChange={(value) => setSort(value as typeof sort)}
+                  options={[{ value: "created", label: "Date created" }, { value: "updated", label: "Last updated" }, { value: "name", label: "Alphabetical" }]} />
+                <div className="flex rounded-lg border border-[#e2e2e2] bg-[#f0f0f0] p-[3px] text-base dark:border-[#39353e] dark:bg-[#29292d]">
+                  <button className={`rounded-md border-0 px-3.5 py-2 text-base ${view === "list" ? "bg-white text-[#111] dark:bg-[#48484f] dark:text-white" : "bg-transparent text-[#555] dark:text-[#e4e4e7]"}`} onClick={() => setView("list")}><span aria-hidden="true">☷</span> List</button>
+                  <button className={`rounded-md border-0 px-3.5 py-2 text-base ${view === "grid" ? "bg-white text-[#111] dark:bg-[#48484f] dark:text-white" : "bg-transparent text-[#555] dark:text-[#e4e4e7]"}`} onClick={() => setView("grid")}><span aria-hidden="true">▦</span> Grid</button></div>
               </div>
             </div>
-            <hr className="tf-hr" />
+            <hr className="my-6 border-0 border-t border-[#e6e6e6] dark:border-[#39353e]" />
 
-            <div className="tf-banners">
+            <div className="mb-[34px] grid grid-cols-2 gap-5 max-[900px]:grid-cols-1">
               {BANNERS.map((b, i) => banners[i] && (
-                <div className="tf-banner" key={i}>
-                  <span className="tf-spark">✦</span>
-                  <div className="grow"><p>{b}</p><button className="tf-chip" onClick={create}>Create form</button></div>
-                  <button className="ghost" onClick={() => setBanners((s) => s.map((v, k) => (k === i ? false : v)))}>✕</button>
+                <div className="flex items-start gap-4 rounded-[10px] bg-[#faf8fa] p-5 dark:bg-[#26232a]" key={i}>
+                  <span className="grid h-10 w-10 flex-none place-items-center rounded-lg bg-[#eee9ef] text-[var(--tf-purple)] dark:bg-[#39313d] dark:text-[#d9c9df]">✦</span>
+                  <div className="flex-1"><p className="m-0 text-base leading-6 text-[var(--tf-text-2)]">{b}</p><button className="mt-2.5 rounded-md border border-[var(--tf-border-mid)] bg-white px-3 py-1.5 text-sm text-[var(--tf-text)] hover:bg-[#f4f4f4] dark:border-[#48434d] dark:bg-[#211f25] dark:text-[#f2eff3] dark:hover:bg-[#343039]" onClick={create}>Create form</button></div>
+                  <button className="border-0 bg-transparent text-base text-[var(--tf-text)] hover:opacity-75" onClick={() => setBanners((s) => s.map((v, k) => (k === i ? false : v)))}>✕</button>
                 </div>))}
             </div>
 
-            {rows === null && <p className="muted">Loading…</p>}
-            {rows && shown.length === 0 && <p className="muted">No forms found.</p>}
+            {rows === null && <p className="text-[var(--tf-muted)]">Loading…</p>}
+            {rows && shown.length === 0 && <p className="text-[var(--tf-muted)]">No forms found.</p>}
 
             {view === "list" && shown.length > 0 && (<>
-              <div className="tf-row head"><span /><span>Contacts</span><span>Responses</span><span>Completed</span><span>Updated</span><span>Integrations</span><span /></div>
+              <div className="grid grid-cols-[minmax(220px,1fr)_100px_110px_110px_130px_110px_44px] items-center gap-1.5 px-4 pb-3.5 text-base text-[var(--tf-muted)] dark:text-[#aaa2ae] max-[900px]:grid-cols-[1fr_44px]">
+                <span /><span className="max-[900px]:hidden">Contacts</span><span className="max-[900px]:hidden">Responses</span><span className="max-[900px]:hidden">Completed</span><span className="max-[900px]:hidden">Updated</span><span className="max-[900px]:hidden">Integrations</span><span /></div>
               {shown.map((f) => (
-                <div className={"tf-row" + (draggingId === f.id ? " is-dragging" : "")} key={f.id}
+                <div className={`mb-2 grid h-[60px] cursor-pointer grid-cols-[minmax(220px,1fr)_100px_110px_110px_130px_110px_44px] items-center gap-1.5 rounded-xl border border-[var(--tf-border)] bg-white px-4 text-base hover:shadow-[0_2px_8px_rgba(0,0,0,.06)] dark:border-[#39353e] dark:bg-[#26232a] dark:text-[#f2eff3] max-[900px]:grid-cols-[1fr_44px] max-[900px]:[&>*:not(:first-child):not(:last-child)]:hidden ${draggingId === f.id ? "opacity-50 cursor-grabbing" : ""}`} key={f.id}
                   draggable onDragStart={(event) => startFormDrag(event, f)} onDragEnd={() => { setDraggingId(null); setDragTargetId(null); }}
                   onClick={() => router.push(`/builder/${f.id}`)}>
-                  <span className="row center gap"><Thumb f={f} /><b>{f.title}</b>
-                    <i className={"tf-status " + f.status}>{f.status === "published" ? "Published" : "Draft"}</i></span>
-                  <span className="dim">-</span>
-                  <span className="dim">{f.reply_count || "-"}</span>
-                  <span className="dim">{f.reply_count || "-"}</span>
+                  <span className="flex items-center gap-2"><Thumb f={f} /><b>{f.title}</b>
+                    <i className={`rounded-[10px] px-2 py-0.5 text-xs not-italic ${f.status === "published" ? "bg-[var(--tf-green-bg)] text-[var(--tf-green)]" : "bg-[#eee] text-[#666] dark:bg-[#39393e] dark:text-[#d4d4d8]"}`}>{f.status === "published" ? "Published" : "Draft"}</i></span>
+                  <span className="text-[#888] dark:text-[#aaa2ae]">-</span>
+                  <span className="text-[#888] dark:text-[#aaa2ae]">{f.reply_count || "-"}</span>
+                  <span className="text-[#888] dark:text-[#aaa2ae]">{f.reply_count || "-"}</span>
                   <span>{fmt(f.updated_at)}</span>
-                  <span><button className="tf-int" onClick={(e) => { e.stopPropagation(); soon("Integrations"); }}>⊞</button></span>
+                  <span><button className="border-0 bg-transparent text-xl text-[#555] dark:text-[#d5cfd8]" onClick={(e) => { e.stopPropagation(); soon("Integrations"); }}>⊞</button></span>
                   <Menu f={f} />
                 </div>))}
             </>)}
 
             {view === "grid" && (
-              <div className="tf-grid">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3.5 max-[620px]:grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))]">
                 {shown.map((f) => (
-                  <div className={"tf-tile" + (draggingId === f.id ? " is-dragging" : "")} key={f.id}
+                  <div className={`flex min-h-[136px] cursor-pointer flex-col rounded-xl border border-[var(--tf-border)] bg-white px-5 shadow-none transition-[transform,box-shadow,border-color] duration-150 hover:-translate-y-0.5 hover:border-[var(--tf-border-mid)] hover:shadow-[0_3px_10px_rgba(39,31,42,.05)] dark:border-[#39353e] dark:bg-[#26232a] ${draggingId === f.id ? "opacity-50 cursor-grabbing" : ""}`} key={f.id}
                     draggable onDragStart={(event) => startFormDrag(event, f)} onDragEnd={() => { setDraggingId(null); setDragTargetId(null); }}
                     onClick={() => router.push(`/builder/${f.id}`)}>
-                    <div className="tf-tile-top">
-                      <div className="tf-tile-heading">
-                        <b title={f.title}>{f.title}</b>
+                    <div className="flex min-h-[136px] flex-col gap-3.5 py-[17px]">
+                      <div className="flex min-w-0 items-center justify-between gap-2">
+                        <b className="overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium text-[var(--tf-text)] dark:text-[#f2eff3]" title={f.title}>{f.title}</b>
                         <Menu f={f} />
                       </div>
-                      <div className="tf-tile-icon" aria-hidden="true">⊞</div>
+                      <div className="grid h-[29px] w-[29px] place-items-center rounded-[7px] border border-[var(--tf-border-mid)] bg-white text-[19px] text-[var(--tf-text-2)] dark:border-[#4b4550] dark:bg-[#26232a] dark:text-[#d5cfd8]" aria-hidden="true">⊞</div>
                     </div>
                   </div>))}
               </div>)}
@@ -360,29 +368,29 @@ export default function Dashboard() {
 
       {renaming && (
         <Modal title="Rename form" onClose={() => setRenaming(null)}>
-          <input className="box-input" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
-          <div className="row end"><button className="primary" onClick={() => { const r = renaming; setRenaming(null); act(() => call(`/api/inquiries/${r.id}/title`, send("PATCH", { title: name })), "Form renamed"); }}>Save</button></div>
+          <input className="my-1 mb-2.5 w-full rounded-lg border border-[var(--tf-border-mid)] bg-white px-2.5 py-[9px] text-[var(--tf-text)] dark:border-[#48434d] dark:bg-[#19191c] dark:text-[#f2eff3]" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+          <div className="mt-4 flex justify-end"><button className="rounded-lg border border-[var(--tf-purple)] bg-[var(--tf-purple)] px-3.5 py-2 text-sm font-semibold text-white hover:bg-[var(--tf-purple-dark)]" onClick={() => { const r = renaming; setRenaming(null); act(() => call(`/api/inquiries/${r.id}/title`, send("PATCH", { title: name })), "Form renamed"); }}>Save</button></div>
         </Modal>)}
       {workspaceOpen && (
         <Modal title="Add workspace" onClose={() => { setWorkspaceOpen(false); setWorkspaceName(""); }}>
-          <label className="tf-modal-label" htmlFor="workspace-name">Workspace name</label>
-          <input id="workspace-name" className="box-input" autoFocus maxLength={100} placeholder="New workspace"
+          <label className="mb-1.5 mt-2.5 block text-sm text-[var(--tf-text-2)] dark:text-[#d5cfd8]" htmlFor="workspace-name">Workspace name</label>
+          <input id="workspace-name" className="my-1 mb-2.5 w-full rounded-lg border border-[var(--tf-border-mid)] bg-white px-2.5 py-[9px] text-[var(--tf-text)] placeholder:text-[var(--tf-muted)] dark:border-[#48434d] dark:bg-[#19191c] dark:text-[#f2eff3] dark:placeholder:text-[#85858e]" autoFocus maxLength={100} placeholder="New workspace"
             value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && workspaceName.trim()) void addWorkspace(); }} />
-          <div className="row end gap">
-            <button className="btn" onClick={() => { setWorkspaceOpen(false); setWorkspaceName(""); }}>Cancel</button>
-            <button className="primary" disabled={!workspaceName.trim()} onClick={() => void addWorkspace()}>Add workspace</button>
+          <div className="mt-4 flex justify-end gap-2">
+            <button className="inline-block rounded-lg border border-[var(--tf-border-mid)] bg-white px-3.5 py-2 text-sm text-[var(--tf-text)] hover:bg-[#f4f4f4] dark:border-[#45454b] dark:bg-[#29292d] dark:text-[#e4e4e7] dark:hover:bg-[#343039]" onClick={() => { setWorkspaceOpen(false); setWorkspaceName(""); }}>Cancel</button>
+            <button className="rounded-lg border border-[var(--tf-purple)] bg-[var(--tf-purple)] px-3.5 py-2 text-sm font-semibold text-white hover:bg-[var(--tf-purple-dark)] disabled:cursor-default disabled:opacity-50" disabled={!workspaceName.trim()} onClick={() => void addWorkspace()}>Add workspace</button>
           </div>
         </Modal>)}
       {workspaceToRename && (
         <Modal title="Rename workspace" onClose={() => { setWorkspaceToRename(null); setWorkspaceName(""); }}>
-          <label className="tf-modal-label" htmlFor="rename-workspace-name">Workspace name</label>
-          <input id="rename-workspace-name" className="box-input" autoFocus maxLength={100}
+          <label className="mb-1.5 mt-2.5 block text-sm text-[var(--tf-text-2)] dark:text-[#d5cfd8]" htmlFor="rename-workspace-name">Workspace name</label>
+          <input id="rename-workspace-name" className="my-1 mb-2.5 w-full rounded-lg border border-[var(--tf-border-mid)] bg-white px-2.5 py-[9px] text-[var(--tf-text)] dark:border-[#48434d] dark:bg-[#19191c] dark:text-[#f2eff3]" autoFocus maxLength={100}
             value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && workspaceName.trim()) void renameWorkspace(); }} />
-          <div className="row end gap">
-            <button className="btn" onClick={() => { setWorkspaceToRename(null); setWorkspaceName(""); }}>Cancel</button>
-            <button className="primary" disabled={!workspaceName.trim()} onClick={() => void renameWorkspace()}>Save</button>
+          <div className="mt-4 flex justify-end gap-2">
+            <button className="inline-block rounded-lg border border-[var(--tf-border-mid)] bg-white px-3.5 py-2 text-sm text-[var(--tf-text)] hover:bg-[#f4f4f4] dark:border-[#45454b] dark:bg-[#29292d] dark:text-[#e4e4e7] dark:hover:bg-[#343039]" onClick={() => { setWorkspaceToRename(null); setWorkspaceName(""); }}>Cancel</button>
+            <button className="rounded-lg border border-[var(--tf-purple)] bg-[var(--tf-purple)] px-3.5 py-2 text-sm font-semibold text-white hover:bg-[var(--tf-purple-dark)] disabled:cursor-default disabled:opacity-50" disabled={!workspaceName.trim()} onClick={() => void renameWorkspace()}>Save</button>
           </div>
         </Modal>)}
       {workspaceToRemove && (
@@ -392,16 +400,16 @@ export default function Dashboard() {
             Forms in <b>{workspaceToRemove.workspace.name}</b> will be moved to My workspace and kept.
             {workspaceToRemove.action === "delete" ? " The workspace will then be deleted." : " You will leave this workspace."}
           </p>
-          <div className="row end gap">
-            <button className="btn" onClick={() => setWorkspaceToRemove(null)}>Cancel</button>
-            <button className="primary danger-fill" onClick={() => void removeWorkspace()}>
+          <div className="mt-4 flex justify-end gap-2">
+            <button className="inline-block rounded-lg border border-[var(--tf-border-mid)] bg-white px-3.5 py-2 text-sm text-[var(--tf-text)] hover:bg-[#f4f4f4] dark:border-[#45454b] dark:bg-[#29292d] dark:text-[#e4e4e7] dark:hover:bg-[#343039]" onClick={() => setWorkspaceToRemove(null)}>Cancel</button>
+            <button className="rounded-lg border border-[#c0392b] bg-[#c0392b] px-3.5 py-2 text-sm font-semibold text-white" onClick={() => void removeWorkspace()}>
               {workspaceToRemove.action === "leave" ? "Leave workspace" : "Delete workspace"}
             </button>
           </div>
         </Modal>)}
       {searchOpen && (
         <Modal title="Search" onClose={() => setSearchOpen(false)}>
-          <input className="box-input tf-search-modal-input" autoFocus value={searchTerm}
+          <input className="mb-3 h-[46px] w-full rounded-xl border border-[var(--tf-border-mid)] bg-white px-2.5 py-[9px] text-[var(--tf-text)] dark:border-[#48434d] dark:bg-[#19191c] dark:text-[#f2eff3] dark:placeholder:text-[#85858e]" autoFocus value={searchTerm}
             placeholder={`Search in ${selectedWorkspace?.name || "your workspace"}`}
             onChange={(event) => setSearchTerm(event.target.value)}
             onKeyDown={(event) => {
@@ -411,24 +419,24 @@ export default function Dashboard() {
                 router.push(`/builder/${searchResults[0].id}`);
               }
             }} />
-          {searchTerm.trim() && <div className="tf-search-results">
+          {searchTerm.trim() && <div className="flex max-h-[260px] flex-col gap-[3px] overflow-auto">
             {searchResults.length ? searchResults.map((result) => (
-              <button key={result.id} onClick={() => {
+              <button className="flex justify-between gap-3 rounded-md border-0 bg-transparent p-2.5 text-left text-[var(--tf-text)] hover:bg-[#f5f3f5] dark:hover:bg-[#37313b]" key={result.id} onClick={() => {
                 setSelectedWorkspaceId(result.workspace_id ?? null);
                 setSearchOpen(false);
                 router.push(`/builder/${result.id}`);
               }}>
                 <span>{result.title}</span>
-                <small>{workspaces.find((workspace) => workspace.id === result.workspace_id)?.name || "Workspace"}</small>
+                <small className="text-[var(--tf-muted)]">{workspaces.find((workspace) => workspace.id === result.workspace_id)?.name || "Workspace"}</small>
               </button>
-            )) : <p>No matching forms.</p>}
+            )) : <p className="m-2 text-[var(--tf-muted)]">No matching forms.</p>}
           </div>}
         </Modal>)}
       {deleting && (
         <Modal title="Delete form?" onClose={() => setDeleting(null)}>
           <p>&ldquo;{deleting.title}&rdquo; and all of its responses will be permanently removed.</p>
-          <div className="row end gap"><button className="btn" onClick={() => setDeleting(null)}>Cancel</button>
-            <button className="primary danger-fill" onClick={() => { const d = deleting; setDeleting(null); act(() => call(`/api/inquiries/${d.id}`, send("DELETE")), "Form deleted"); }}>Delete</button></div>
+          <div className="mt-4 flex justify-end gap-2"><button className="inline-block rounded-lg border border-[var(--tf-border-mid)] bg-white px-3.5 py-2 text-sm text-[var(--tf-text)] hover:bg-[#f4f4f4] dark:border-[#45454b] dark:bg-[#29292d] dark:text-[#e4e4e7] dark:hover:bg-[#343039]" onClick={() => setDeleting(null)}>Cancel</button>
+            <button className="rounded-lg border border-[#c0392b] bg-[#c0392b] px-3.5 py-2 text-sm font-semibold text-white" onClick={() => { const d = deleting; setDeleting(null); act(() => call(`/api/inquiries/${d.id}`, send("DELETE")), "Form deleted"); }}>Delete</button></div>
         </Modal>)}
     </div>
   );

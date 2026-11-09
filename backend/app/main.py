@@ -1,7 +1,9 @@
 import csv
 import io
+import json
 import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -82,6 +84,7 @@ def workspace_out(workspace, counts):
 
 
 def apply_payload(inq, data):
+    inq.updated_at = datetime.utcnow()
     inq.title = data.title.strip() or "Untitled form"
     inq.accent, inq.closing_heading, inq.closing_text = data.accent, data.closing_heading, data.closing_text
     existing = {p.id: p for p in inq.prompts}
@@ -97,7 +100,9 @@ def apply_payload(inq, data):
             kept.add(p.id)
         p.position, p.kind, p.label, p.hint = pos, pd.kind, pd.label, pd.hint
         p.mandatory = pd.mandatory
-        p.choices = [c for c in pd.choices if c.strip()] if pd.kind in ("choice", "dropdown") else []
+        p.choices = [c for c in pd.choices if c.strip()] if pd.kind in (
+            "choice", "dropdown", "checkbox", "ranking", "matrix"
+        ) else []
     for pid, p in existing.items():
         if pid not in kept:
             inq.prompts.remove(p)
@@ -276,9 +281,31 @@ def unpublish(iid: int, db: Session = Depends(get_db)):
 
 
 # ---------- creator: replies ----------
+def format_reply_value(prompt, value):
+    if prompt.kind not in ("checkbox", "ranking", "matrix", "contact_info"):
+        return value
+    try:
+        parsed = json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return value
+    if prompt.kind in ("checkbox", "ranking") and isinstance(parsed, list):
+        return ", ".join(str(item) for item in parsed)
+    if prompt.kind == "matrix" and isinstance(parsed, dict):
+        return "; ".join(f"{row}: {score}" for row, score in parsed.items())
+    if prompt.kind == "contact_info" and isinstance(parsed, dict):
+        return "; ".join(
+            f"{label}: {parsed[field]}"
+            for field, label in (("name", "Name"), ("email", "Email"), ("phone", "Phone"))
+            if isinstance(parsed.get(field), str) and parsed[field].strip()
+        )
+    return value
+
+
 def reply_rows(inq):
+    prompts = {p.id: p for p in inq.prompts}
     return [{"id": r.id, "submitted_at": r.submitted_at.isoformat(),
-             "answers": {str(it.prompt_id): it.value for it in r.items}}
+             "answers": {str(it.prompt_id): format_reply_value(prompts[it.prompt_id], it.value)
+                         if it.prompt_id in prompts else it.value for it in r.items}}
             for r in sorted(inq.replies, key=lambda r: r.submitted_at, reverse=True)]
 
 
@@ -289,11 +316,23 @@ def summarize(inq):
         s = {"prompt_id": p.id, "label": p.label, "kind": p.kind, "answered": len(vals)}
         if p.kind in ("choice", "dropdown"):
             s["counts"] = {c: vals.count(c) for c in p.choices}
+        elif p.kind == "checkbox":
+            selections = []
+            for value in vals:
+                try:
+                    parsed = json.loads(value)
+                except (TypeError, json.JSONDecodeError):
+                    continue
+                if isinstance(parsed, list):
+                    selections.extend(option for option in parsed if isinstance(option, str))
+            s["counts"] = {c: selections.count(c) for c in p.choices}
         elif p.kind == "yes_no":
             s["counts"] = {"yes": vals.count("yes"), "no": vals.count("no")}
-        elif p.kind == "rating":
-            s["counts"] = {str(n): vals.count(str(n)) for n in range(1, 6)}
-            s["average"] = round(sum(int(v) for v in vals) / len(vals), 2) if vals else None
+        elif p.kind in ("rating", "nps", "opinion_scale"):
+            low, high = (0, 10) if p.kind == "nps" else (1, 10) if p.kind == "opinion_scale" else (1, 5)
+            numbers = [int(value) for value in vals if value.isdigit() and low <= int(value) <= high]
+            s["counts"] = {str(n): numbers.count(n) for n in range(low, high + 1)}
+            s["average"] = round(sum(numbers) / len(numbers), 2) if numbers else None
         elif p.kind == "number":
             nums = [float(v) for v in vals]
             s["average"] = round(sum(nums) / len(nums), 2) if nums else None
