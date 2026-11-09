@@ -210,8 +210,8 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2 max-[700px]:gap-1">
-          <button className="rounded-md border-0 bg-transparent px-2.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] max-[700px]:hidden" onClick={() => soon("Integrations")}>Integrations</button>
-          <button className="rounded-md border-0 bg-transparent px-2.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] max-[700px]:hidden" onClick={() => soon("Brand kit")}>Brand kit</button>
+          <button className="rounded-md border-0 bg-transparent px-2.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#343039] max-[700px]:hidden" onClick={() => soon("Integrations")}>Integrations</button>
+          <button className="rounded-md border-0 bg-transparent px-2.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#343039] max-[700px]:hidden" onClick={() => soon("Brand kit")}>Brand kit</button>
           <button className="rounded-md border-0 bg-[var(--tf-green)] px-4 py-2.5 text-base font-semibold text-white hover:bg-[#0d6758] max-[700px]:hidden" onClick={() => soon("Plans")}>View plans</button>
           <div className="tf-help-wrap relative">
             <button className="tf-round grid h-8 w-8 place-items-center rounded-full border border-[var(--tf-border-mid)] bg-white text-sm text-[var(--tf-text)] dark:bg-[#26232a]" aria-label="Help menu" onClick={() => setHelpOpen(!helpOpen)}>?</button>
@@ -257,7 +257,7 @@ export default function Dashboard() {
             <button key={t} className={`whitespace-nowrap rounded-t-md border-0 border-b-[3px] px-3.5 pb-3.5 pt-2.5 text-base ${t === "Forms" ? "border-[var(--tf-purple)] bg-[#ececec] font-semibold text-[#111] dark:border-[#b7a3bf] dark:bg-[#303035] dark:text-white" : "border-transparent bg-transparent text-[#444] hover:bg-[#ececec] dark:text-[#c4c4ca] dark:hover:bg-[#303035]"}`} onClick={() => t !== "Forms" && soon(t)}>
               <span className="mr-2 inline-block text-[15px] text-[var(--tf-text-2)]" aria-hidden="true">{TAB_ICONS[t]}</span>{t}
               {t === "Insights" && <span className="ml-2.5 inline-grid h-5 w-5 place-items-center rounded-full border border-[#b7ddd5] text-sm text-[var(--tf-green)]" aria-label="Insights">◇</span>}
-              {t === "Pages" && <span className="ml-2 rounded-[10px] border border-[#9cc3ef] bg-[#eaf3fd] px-2 py-px text-xs text-[#1d5fa8]">Beta</span>}</button>))}
+              {t === "Pages" && <span className="ml-2 rounded-[10px] border border-[#9cc3ef] bg-[#eaf3fd] px-2 py-px text-xs text-[#1d5fa8] dark:border-[#3c5874] dark:bg-[#253449] dark:text-[#b8d7ff]">Beta</span>}</button>))}
         </nav>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 min-[901px]:grid-cols-[250px_minmax(0,1fr)]">
