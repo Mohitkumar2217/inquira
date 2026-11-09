@@ -4,6 +4,16 @@ from sqlalchemy.orm import relationship
 from .database import Base
 
 
+class Workspace(Base):
+    """A creator-owned collection of forms."""
+    __tablename__ = "workspaces"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False, unique=True)
+    is_private = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    inquiries = relationship("Inquiry", back_populates="workspace")
+
+
 class Inquiry(Base):
     """A form definition owned by the (default) creator."""
     __tablename__ = "inquiries"
@@ -11,6 +21,7 @@ class Inquiry(Base):
     slug = Column(String(16), unique=True, index=True, nullable=False)
     title = Column(String(200), nullable=False, default="Untitled form")
     status = Column(String(12), nullable=False, default="draft")  # draft | published
+    workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=True, index=True)
     accent = Column(String(9), nullable=False, default="#0445AF")
     closing_heading = Column(String(200), default="Thanks for completing this")
     closing_text = Column(Text, default="Your answers have been recorded.")
@@ -19,6 +30,7 @@ class Inquiry(Base):
     prompts = relationship("Prompt", back_populates="inquiry", cascade="all, delete-orphan",
                            order_by="Prompt.position")
     replies = relationship("Reply", back_populates="inquiry", cascade="all, delete-orphan")
+    workspace = relationship("Workspace", back_populates="inquiries")
 
 
 class Prompt(Base):

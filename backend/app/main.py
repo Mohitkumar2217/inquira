@@ -6,21 +6,38 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
-from sqlalchemy import func
+from sqlalchemy import func, inspect, text
 from sqlalchemy.orm import Session
 
 from .database import Base, SessionLocal, engine, get_db
-from .models import Inquiry, Prompt, Reply, ReplyItem
+from .models import Inquiry, Prompt, Reply, ReplyItem, Workspace
 from .rules import check_value, valid_kind
-from .schemas import InquiryIn, ReplyIn, TitleIn
+from .schemas import InquiryIn, ReplyIn, TitleIn, WorkspaceIn, WorkspaceMoveIn
 from .seed import seed_if_empty
 
 
 @asynccontextmanager
 async def lifespan(_):
     Base.metadata.create_all(engine)
+    if "workspace_id" not in {column["name"] for column in inspect(engine).get_columns("inquiries")}:
+        with engine.begin() as connection:
+            connection.execute(text(
+                "ALTER TABLE inquiries ADD COLUMN workspace_id INTEGER REFERENCES workspaces(id)"
+            ))
     with SessionLocal() as db:
+        private_workspace = db.query(Workspace).filter_by(is_private=True).first()
+        if private_workspace is None:
+            private_workspace = Workspace(name="My workspace", is_private=True)
+            db.add(private_workspace)
+            db.flush()
+        db.query(Inquiry).filter(Inquiry.workspace_id.is_(None)).update(
+            {Inquiry.workspace_id: private_workspace.id}, synchronize_session=False
+        )
         seed_if_empty(db)
+        db.query(Inquiry).filter(Inquiry.workspace_id.is_(None)).update(
+            {Inquiry.workspace_id: private_workspace.id}, synchronize_session=False
+        )
+        db.commit()
     yield
 
 
@@ -36,6 +53,7 @@ def prompt_out(p):
 
 def inquiry_out(i, full=True):
     out = {"id": i.id, "slug": i.slug, "title": i.title, "status": i.status, "accent": i.accent,
+           "workspace_id": i.workspace_id,
            "closing_heading": i.closing_heading, "closing_text": i.closing_text,
            "updated_at": i.updated_at.isoformat() if i.updated_at else None,
            "created_at": i.created_at.isoformat() if i.created_at else None}
@@ -49,6 +67,18 @@ def find(db, inquiry_id):
     if not inq:
         raise HTTPException(404, "Inquiry not found")
     return inq
+
+
+def find_workspace(db, workspace_id):
+    workspace = db.get(Workspace, workspace_id)
+    if not workspace:
+        raise HTTPException(404, "Workspace not found")
+    return workspace
+
+
+def workspace_out(workspace, counts):
+    return {"id": workspace.id, "name": workspace.name, "is_private": workspace.is_private,
+            "form_count": counts.get(workspace.id, 0)}
 
 
 def apply_payload(inq, data):
@@ -78,6 +108,69 @@ def new_slug():
 
 
 # ---------- creator: inquiries ----------
+@app.get("/api/workspaces")
+def list_workspaces(db: Session = Depends(get_db)):
+    counts = dict(db.query(Inquiry.workspace_id, func.count(Inquiry.id))
+                  .group_by(Inquiry.workspace_id).all())
+    return [workspace_out(w, counts) for w in
+            db.query(Workspace).order_by(Workspace.is_private.desc(), Workspace.name).all()]
+
+
+@app.post("/api/workspaces", status_code=201)
+def create_workspace(data: WorkspaceIn, db: Session = Depends(get_db)):
+    name = data.name.strip()
+    if not name:
+        raise HTTPException(422, "Workspace name cannot be empty")
+    if db.query(Workspace).filter(func.lower(Workspace.name) == name.lower()).first():
+        raise HTTPException(409, "A workspace with this name already exists")
+    workspace = Workspace(name=name)
+    db.add(workspace)
+    db.commit()
+    db.refresh(workspace)
+    return workspace_out(workspace, {})
+
+
+@app.patch("/api/workspaces/{workspace_id}")
+def rename_workspace(workspace_id: int, data: WorkspaceIn, db: Session = Depends(get_db)):
+    workspace = find_workspace(db, workspace_id)
+    name = data.name.strip()
+    if not name:
+        raise HTTPException(422, "Workspace name cannot be empty")
+    duplicate = db.query(Workspace).filter(
+        func.lower(Workspace.name) == name.lower(), Workspace.id != workspace.id
+    ).first()
+    if duplicate:
+        raise HTTPException(409, "A workspace with this name already exists")
+    workspace.name = name
+    db.commit()
+    db.refresh(workspace)
+    return workspace_out(workspace, {})
+
+
+def remove_workspace(workspace, db):
+    if workspace.is_private:
+        raise HTTPException(400, "The private workspace cannot be removed")
+    private_workspace = db.query(Workspace).filter_by(is_private=True).first()
+    if private_workspace is None:
+        raise HTTPException(409, "The private workspace is unavailable")
+    moved_count = db.query(Inquiry).filter_by(workspace_id=workspace.id).update(
+        {Inquiry.workspace_id: private_workspace.id}, synchronize_session=False
+    )
+    db.delete(workspace)
+    db.commit()
+    return {"ok": True, "moved_forms": moved_count}
+
+
+@app.post("/api/workspaces/{workspace_id}/leave")
+def leave_workspace(workspace_id: int, db: Session = Depends(get_db)):
+    return remove_workspace(find_workspace(db, workspace_id), db)
+
+
+@app.delete("/api/workspaces/{workspace_id}")
+def delete_workspace(workspace_id: int, db: Session = Depends(get_db)):
+    return remove_workspace(find_workspace(db, workspace_id), db)
+
+
 @app.get("/api/inquiries")
 def list_inquiries(db: Session = Depends(get_db)):
     counts = dict(db.query(Reply.inquiry_id, func.count(Reply.id)).group_by(Reply.inquiry_id).all())
@@ -87,7 +180,13 @@ def list_inquiries(db: Session = Depends(get_db)):
 
 @app.post("/api/inquiries", status_code=201)
 def create_inquiry(data: InquiryIn, db: Session = Depends(get_db)):
-    inq = Inquiry(slug=new_slug())
+    workspace_id = data.workspace_id
+    if workspace_id is None:
+        private_workspace = db.query(Workspace).filter_by(is_private=True).first()
+        workspace_id = private_workspace.id if private_workspace else None
+    elif db.get(Workspace, workspace_id) is None:
+        raise HTTPException(404, "Workspace not found")
+    inq = Inquiry(slug=new_slug(), workspace_id=workspace_id)
     apply_payload(inq, data)
     db.add(inq)
     db.commit()
@@ -125,7 +224,7 @@ def remove(iid: int, db: Session = Depends(get_db)):
 @app.post("/api/inquiries/{iid}/duplicate", status_code=201)
 def duplicate(iid: int, db: Session = Depends(get_db)):
     src = find(db, iid)
-    cp = Inquiry(slug=new_slug(), title=f"{src.title} (copy)", accent=src.accent,
+    cp = Inquiry(slug=new_slug(), workspace_id=src.workspace_id, title=f"{src.title} (copy)", accent=src.accent,
                  closing_heading=src.closing_heading, closing_text=src.closing_text)
     for p in src.prompts:
         cp.prompts.append(Prompt(position=p.position, kind=p.kind, label=p.label, hint=p.hint,
@@ -133,6 +232,29 @@ def duplicate(iid: int, db: Session = Depends(get_db)):
     db.add(cp)
     db.commit()
     return inquiry_out(cp, False)
+
+
+@app.post("/api/inquiries/{iid}/copy-to/{workspace_id}", status_code=201)
+def copy_to_workspace(iid: int, workspace_id: int, db: Session = Depends(get_db)):
+    src = find(db, iid)
+    target = find_workspace(db, workspace_id)
+    cp = Inquiry(slug=new_slug(), workspace_id=target.id, title=f"{src.title} (copy)", accent=src.accent,
+                 closing_heading=src.closing_heading, closing_text=src.closing_text)
+    for p in src.prompts:
+        cp.prompts.append(Prompt(position=p.position, kind=p.kind, label=p.label, hint=p.hint,
+                                 mandatory=p.mandatory, choices=list(p.choices or [])))
+    db.add(cp)
+    db.commit()
+    return inquiry_out(cp, False)
+
+
+@app.patch("/api/inquiries/{iid}/workspace")
+def move_to_workspace(iid: int, data: WorkspaceMoveIn, db: Session = Depends(get_db)):
+    inq = find(db, iid)
+    target = find_workspace(db, data.workspace_id)
+    inq.workspace_id = target.id
+    db.commit()
+    return inquiry_out(inq, False)
 
 
 @app.post("/api/inquiries/{iid}/publish")

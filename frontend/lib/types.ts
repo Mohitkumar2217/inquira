@@ -5,8 +5,12 @@ export interface PromptDTO {
 }
 export interface Inquiry {
   id: number; slug: string; title: string; status: "draft" | "published"; accent: string;
+  workspace_id?: number | null;
   closing_heading: string; closing_text: string; prompts: PromptDTO[];
   reply_count?: number; prompt_count?: number; updated_at?: string; created_at?: string;
+}
+export interface Workspace {
+  id: number; name: string; is_private: boolean; form_count: number;
 }
 export const KIND_META: { kind: Kind; name: string; icon: string }[] = [
   { kind: "short_text", name: "Short text", icon: "Aa" },

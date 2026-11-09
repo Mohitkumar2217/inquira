@@ -6,7 +6,7 @@ through a one-question-at-a-time animated flow, and review results.
 **Naming used in this codebase:** form = *Inquiry*, question = *Prompt*, submission = *Reply*, answer = *ReplyItem*.
 
 ## Tech stack
-- Frontend: Next.js 14 (App Router) + TypeScript, plain CSS (no UI kit)
+- Frontend: Next.js 14 (App Router) + TypeScript, Tailwind CSS utilities and custom CSS
 - Backend: Python, FastAPI, SQLAlchemy 2
 - Database: SQLite (`backend/inquira.db`, created and seeded on first start)
 
@@ -20,11 +20,12 @@ uvicorn app.main:app --reload
 
 # frontend (http://localhost:3000)
 cd frontend
-cp .env.local.example .env.local      # set NEXT_PUBLIC_API_URL for deployed backend
 npm install
+# Copy .env.local.example to .env.local when configuring a non-default API URL
 npm run dev
 ```
-Seeded: `/f/feedback1` and `/f/rsvp2024` (published, with sample replies) and one draft.
+Seed data is created only when the SQLite database is empty: `/f/feedback1` and `/f/rsvp2024`
+(published, with sample replies) and one draft.
 
 ## Architecture
 ```
@@ -36,20 +37,22 @@ backend/app
   seed.py      sample data
   main.py      routes: creator API + public respondent API
 frontend
-  app/page.tsx            dashboard (list, create, rename, duplicate, delete, publish)
-  app/builder/[id]        builder: question list (drag reorder) | live preview | settings panel
+  app/page.tsx            workspace dashboard (create/switch workspaces, sort, drag/drop and manage forms)
+  app/builder/[id]        builder: ordered questions (drag reorder) | live preview | settings panel
   app/f/[slug]            public respondent page (no login)
   app/results/[id]        summary stats, responses table, response detail, CSV export
   components/Runner.tsx   the one-question-at-a-time engine (shared by preview and public page)
   components/Modal.tsx, Toasts.tsx, lib/api.ts, lib/types.ts
 ```
-The builder saves the whole inquiry with one `PUT`; the server upserts prompts by id (new prompts use ids ≤ 0),
-removes missing ones and stores the order in `position`. Existing replies stay linked to kept prompts.
+The builder saves changes explicitly with one `PUT`; publishing also saves pending edits first. The server
+upserts prompts by id (new prompts use ids ≤ 0), removes missing ones and stores the order in `position`.
+Existing replies stay linked to kept prompts.
 
 ## Database schema
 | table | columns |
 |---|---|
-| inquiries | id, slug (unique), title, status (draft/published), accent, closing_heading, closing_text, created_at, updated_at |
+| workspaces | id, name (unique), is_private, created_at |
+| inquiries | id, slug (unique), workspace_id → workspaces, title, status (draft/published), accent, closing_heading, closing_text, created_at, updated_at |
 | prompts | id, inquiry_id → inquiries (cascade), position, kind, label, hint, mandatory, choices (JSON) |
 | replies | id, inquiry_id → inquiries (cascade), submitted_at |
 | reply_items | id, reply_id → replies (cascade), prompt_id → prompts (cascade), value; UNIQUE(reply_id, prompt_id) |
@@ -57,16 +60,20 @@ removes missing ones and stores the order in `position`. Existing replies stay l
 Prompt kinds: short_text, long_text, choice, dropdown, email, number, yes_no, rating.
 
 ## API overview
-Creator: `GET/POST /api/inquiries`, `GET/PUT/DELETE /api/inquiries/{id}`, `PATCH …/title`, `POST …/duplicate`,
+Creator: `GET/POST /api/workspaces`, `PATCH/DELETE /api/workspaces/{id}`, `POST …/leave`;
+`GET/POST /api/inquiries`, `GET/PUT/DELETE /api/inquiries/{id}`, `PATCH …/title`,
+`POST …/duplicate`, `POST …/copy-to/{workspace_id}`, `PATCH …/workspace` (also used by dashboard drag-and-drop),
 `POST …/publish`, `POST …/unpublish`, `GET …/replies` (replies + per-question summary), `GET …/export.csv`.
 Public: `GET /api/public/{slug}`, `POST /api/public/{slug}/replies` (422 with per-prompt errors on invalid input).
 
 ## Assumptions
-- A single default creator is assumed; there is no authentication.
+- A single default creator is assumed; there is no authentication or team membership. Leaving or deleting a
+  non-private workspace moves its forms into the private workspace so form data is preserved.
 - Answers are stored as text and validated by kind on the server (and mirrored on the client).
 - Logic jumps, integrations, collaboration, file/payment types and custom fonts are "Coming soon" placeholders.
 - Included extras: CSV export, accent colour theme, editable thank-you screen.
-- The visual style is inspired by Typeform's UX but built from scratch; pixel-exact parity was not attempted.
+- The UI is an original implementation inspired by conversational form workflows; it does not use Typeform's
+  proprietary assets or attempt pixel-exact reproduction.
 
 ## Deploy
 Backend: Render/Railway (`uvicorn app.main:app --host 0.0.0.0 --port $PORT`). Frontend: Vercel, with

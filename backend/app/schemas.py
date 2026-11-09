@@ -15,6 +15,7 @@ class PromptIn(BaseModel):
 
 class InquiryIn(BaseModel):
     title: str = "Untitled form"
+    workspace_id: Optional[int] = None
     accent: str = "#0445AF"
     closing_heading: str = "Thanks for completing this"
     closing_text: str = "Your answers have been recorded."
@@ -23,6 +24,14 @@ class InquiryIn(BaseModel):
 
 class TitleIn(BaseModel):
     title: str
+
+
+class WorkspaceIn(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+class WorkspaceMoveIn(BaseModel):
+    workspace_id: int
 
 
 class ReplyIn(BaseModel):

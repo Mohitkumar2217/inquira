@@ -17,7 +17,11 @@ export default function NewForm() {
     if (busy) return;
     setBusy(true);
     try {
-      const d = await call<Inquiry>("/api/inquiries", send("POST", { title: "Untitled form", prompts }));
+      const workspaceId = sessionStorage.getItem("inquira.workspace");
+      const d = await call<Inquiry>("/api/inquiries", send("POST", {
+        title: "Untitled form", prompts, workspace_id: workspaceId ? Number(workspaceId) : undefined,
+      }));
+      sessionStorage.removeItem("inquira.workspace");
       router.push(`/builder/${d.id}`);
     } catch (e: any) { toast(e.message); setBusy(false); }
   };
