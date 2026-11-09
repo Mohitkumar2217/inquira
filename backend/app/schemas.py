@@ -8,6 +8,12 @@ KINDS = [
 ]
 
 
+class PageIn(BaseModel):
+    key: str = Field(min_length=1, max_length=40)
+    title: str = Field(default="", max_length=200)
+    hint: str = Field(default="", max_length=2000)
+
+
 class PromptIn(BaseModel):
     id: Optional[int] = None  # <=0 or None means "new"
     kind: str
@@ -15,6 +21,7 @@ class PromptIn(BaseModel):
     hint: str = ""
     mandatory: bool = False
     choices: List[str] = Field(default_factory=list)
+    page: Optional[PageIn] = None
 
 
 class InquiryIn(BaseModel):

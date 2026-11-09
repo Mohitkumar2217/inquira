@@ -1,5 +1,5 @@
 "use client";
-import { DragEvent, useEffect, useMemo, useState } from "react";
+import { DragEvent, Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Modal from "@/components/Modal";
@@ -8,14 +8,15 @@ import { ThemeToggleButton } from "@/components/ThemeProvider";
 import { useToast } from "@/components/Toasts";
 import { call, errorMessage, send } from "@/lib/api";
 import { Inquiry, Workspace } from "@/lib/types";
+import { USER } from "@/lib/user";
 
 const TABS = ["Forms", "Contacts", "Automations", "Insights", "Pages", "Research Flow"];
 const TAB_ICONS: Record<string, string> = {
   Forms: "▣", Contacts: "♧", Automations: "♧", Insights: "⌁", Pages: "▧", "Research Flow": "⊕",
 };
 const BANNERS = [
-  "Track incoming requests with their urgency, needs and target dates so your team can sort work faster.",
-  "Collect goals, people involved, schedules and success criteria before a project kicks off.",
+  "Capture incoming requests, urgency, requirements, and preferred deadlines to prioritize work efficiently.",
+  "Gather goals, stakeholders, timelines, resources before a project begins.",
 ];
 const RESPONSE_LIMIT = 10;
 const fmt = (s?: string) => (s ? new Date(s + "Z").toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "-");
@@ -48,7 +49,6 @@ export default function Dashboard() {
   const [renaming, setRenaming] = useState<Inquiry | null>(null);
   const [deleting, setDeleting] = useState<Inquiry | null>(null);
   const [name, setName] = useState("");
-  const [isZoomingOut, setIsZoomingOut] = useState(false);
 
   const load = async () => {
     try { setRows(await call<Inquiry[]>("/api/inquiries")); }
@@ -78,16 +78,7 @@ export default function Dashboard() {
   [rows, searchTerm]);
   const create = () => {
     if (selectedWorkspaceId !== null) sessionStorage.setItem("inquira.workspace", String(selectedWorkspaceId));
-    setIsZoomingOut(true);
-    setTimeout(() => {
-      router.push("/new");
-    }, 180);
-  };
-  const openForm = (formId: number) => {
-    setIsZoomingOut(true);
-    setTimeout(() => {
-      router.push(`/builder/${formId}`);
-    }, 180);
+    router.push("/new");
   };
   const act = async (fn: () => Promise<unknown>, msg: string) => {
     setMenu(null);
@@ -197,10 +188,10 @@ export default function Dashboard() {
     <div className="flex min-h-screen flex-col bg-[var(--tf-panel-bg)] px-[18px] pb-[18px] text-[var(--tf-text)] max-[700px]:px-[10px] max-[700px]:pb-[10px]">
       <header className="flex h-[60px] items-center justify-between border-b border-[var(--tf-border)] bg-white px-5 dark:border-[#39353e] dark:bg-[#26232a] max-[700px]:h-auto max-[700px]:min-h-[60px] max-[700px]:gap-2">
         <div className="flex items-center gap-2">
-          <div className="mr-0.5 h-10 w-[14px] rounded-[7px] bg-[var(--tf-purple)]" /><div className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--tf-purple)] text-lg text-white">2</div>
+          <div className="mr-0.5 h-10 w-[14px] rounded-[7px] bg-[var(--tf-purple)]" /><div className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--tf-purple)] text-lg text-white">{USER.workspace[0]}</div>
           <div className="tf-org-wrap relative">
             <button className="tf-ws-name rounded-md border-0 bg-transparent px-1 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#303035]" onClick={() => setOrg(!org)}>
-              default-creator
+              {USER.workspace}
               <svg className={"tf-chevron" + (org ? " up" : "")} viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="m4 6 4 4 4-4" />
               </svg>
@@ -213,8 +204,8 @@ export default function Dashboard() {
                   <button className="block w-full rounded-md border-0 bg-transparent px-2 py-2 text-left text-sm text-[var(--tf-text-2)] hover:bg-[#f5f3f5] dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" key={x} onClick={() => { setOrg(false); soon(x); }}>{x}</button>))}
                 <hr className="my-2 w-full border-0 border-t border-[var(--tf-border)]" />
                 <h5 className="mb-2 mt-1 px-2 text-sm font-semibold">All organizations</h5>
-                <div className="flex items-center gap-2.5 rounded-lg p-2"><div className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--tf-purple)] text-lg text-white">D</div>
-                  <div><div className="text-sm">default-creator <span className="ml-1 rounded-full bg-[#f0edf1] px-2 py-0.5 text-xs text-[var(--tf-text-2)] dark:bg-[#39313d] dark:text-[#d5cfd8]">Owner</span></div><div className="text-xs text-[var(--tf-muted)]">Free Plan - 1 member</div></div></div>
+                <div className="flex items-center gap-2.5 rounded-lg p-2"><div className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--tf-purple)] text-lg text-white">{USER.workspace[0]}</div>
+                  <div><div className="text-sm">{USER.workspace} <span className="ml-1 rounded-full bg-[#f0edf1] px-2 py-0.5 text-xs text-[var(--tf-text-2)] dark:bg-[#39313d] dark:text-[#d5cfd8]">Owner</span></div><div className="text-xs text-[var(--tf-muted)]">Free Plan - 1 member</div></div></div>
               </div>
             </>)}
           </div>
@@ -235,13 +226,13 @@ export default function Dashboard() {
           </div>
           <ThemeToggleButton />
           <div className="tf-account-wrap relative">
-            <button className="tf-avatar grid h-10 w-10 place-items-center rounded-full border-0 bg-[#f9d3da] text-sm font-semibold text-[#58444d]" aria-label="Account menu" onClick={() => setProfileOpen(!profileOpen)}>M2</button>
+            <button className="tf-avatar grid h-10 w-10 place-items-center rounded-full border-0 bg-[#f9d3da] text-sm font-semibold text-[#58444d]" aria-label="Account menu" onClick={() => setProfileOpen(!profileOpen)}>{USER.initials}</button>
             {profileOpen && (<>
               <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setProfileOpen(false)} />
               <div className="tf-account-menu absolute right-0 top-12 z-[22] w-[min(344px,calc(100vw-24px))] rounded-[18px] border border-[var(--tf-border)] bg-white px-[18px] py-5 text-[var(--tf-text)] shadow-[0_8px_28px_rgba(39,31,42,.14)] dark:border-[#39353e] dark:bg-[#26232a] max-[620px]:fixed max-[620px]:right-3 max-[620px]:top-14">
                 <div className="tf-account-profile flex items-center gap-3">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#f9d3da] text-sm font-semibold text-[#58444d]">M2</span>
-                  <div className="flex flex-col gap-1"><b className="text-sm">Inquira Creator</b><span className="text-xs text-[var(--tf-muted)]">creator@example.com</span></div>
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#f9d3da] text-sm font-semibold text-[#58444d]">{USER.initials}</span>
+                  <div className="flex flex-col gap-1"><b className="text-sm">{USER.name}</b><span className="text-xs text-[var(--tf-muted)]">{USER.email}</span></div>
                 </div>
                 <hr className="my-2 w-full border-0 border-t border-[var(--tf-border)]" />
                 <strong className="mb-1 mt-2.5 block px-2 text-xs text-[var(--tf-text-2)]">ACCOUNT</strong>
@@ -261,18 +252,18 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className={`flex flex-1 flex-col overflow-hidden rounded-xl border border-[var(--tf-border)] bg-white dark:border-[#39353e] dark:bg-[#1d1b20] ${isZoomingOut ? "zoom-out-exit" : "zoom-out-enter"}`}>
+      <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-[var(--tf-border)] bg-white dark:border-[#39353e] dark:bg-[#1d1b20]">
         <nav className="flex gap-1.5 border-b border-[var(--tf-border)] bg-white px-4 pt-4 max-[700px]:overflow-x-auto dark:border-[#39353e] dark:bg-[#1d1b20]">
           {TABS.map((t) => (
-            <button key={t} className={`whitespace-nowrap rounded-t-md border-0 border-b-[3px] px-3.5 pb-3.5 pt-2.5 text-base ${t === "Forms" ? "border-[var(--tf-purple)] bg-[#ececec] font-semibold text-[#111] dark:border-[#b7a3bf] dark:bg-[#303035] dark:text-white" : "border-transparent bg-transparent text-[#444] hover:bg-[#ececec] dark:text-[#c4c4ca] dark:hover:bg-[#303035]"}`} onClick={() => t !== "Forms" && soon(t)}>
+            <Fragment key={t}>{t === "Research Flow" && <span className="mx-2.5 mb-1.5 h-6 w-px self-center bg-[var(--tf-border)]" aria-hidden="true" />}<button className={`whitespace-nowrap rounded-t-md border-0 border-b-[3px] px-3.5 pb-3.5 pt-2.5 text-base ${t === "Forms" ? "border-[var(--tf-purple)] bg-[#ececec] font-semibold text-[#111] dark:border-[#b7a3bf] dark:bg-[#303035] dark:text-white" : "border-transparent bg-transparent text-[#444] hover:bg-[#ececec] dark:text-[#c4c4ca] dark:hover:bg-[#303035]"}`} onClick={() => t !== "Forms" && soon(t)}>
               <span className="mr-2 inline-block text-[15px] text-[var(--tf-text-2)]" aria-hidden="true">{TAB_ICONS[t]}</span>{t}
               {t === "Insights" && <span className="ml-2.5 inline-grid h-5 w-5 place-items-center rounded-full border border-[#b7ddd5] text-sm text-[var(--tf-green)]" aria-label="Insights">◇</span>}
-              {t === "Pages" && <span className="ml-2 rounded-[10px] border border-[#9cc3ef] bg-[#eaf3fd] px-2 py-px text-xs text-[#1d5fa8] dark:border-[#3c5874] dark:bg-[#253449] dark:text-[#b8d7ff]">Beta</span>}</button>))}
+              {t === "Pages" && <span className="ml-2 rounded-[10px] border border-[#9cc3ef] bg-[#eaf3fd] px-2 py-px text-xs text-[#1d5fa8] dark:border-[#3c5874] dark:bg-[#253449] dark:text-[#b8d7ff]">Beta</span>}</button></Fragment>))}
         </nav>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 min-[901px]:grid-cols-[250px_minmax(0,1fr)]">
           <aside className="flex flex-col gap-1.5 border-r border-[var(--tf-border)] bg-[#f7f6f7] p-4 dark:border-[#39353e] dark:bg-[#1d1b20]">
-            <button className="mb-1.5 rounded-[7px] border-0 bg-[var(--tf-purple)] p-3.5 text-[17px] font-semibold text-white hover:bg-[var(--tf-purple-dark)] active:scale-95 transition-transform duration-150" onClick={create}>+ Create form</button>
+            <button className="mb-1.5 rounded-[7px] border-0 bg-[var(--tf-purple)] p-3.5 text-[17px] font-semibold text-white hover:bg-[var(--tf-purple-dark)]" onClick={create}>+ Create form</button>
             <button className="mt-3.5 flex w-full cursor-pointer items-center gap-2.5 rounded-md border-y border-[var(--tf-border)] bg-transparent px-3 py-3.5 text-left text-base text-[var(--tf-muted)]" onClick={() => { setSearchTerm(""); setSearchOpen(true); }}>
               <span>⌕</span><span className="flex-1">Search</span>
             </button>
@@ -316,7 +307,7 @@ export default function Dashboard() {
                     </div>
                   </>)}
                 </div>
-                <button className="rounded-md border-0 bg-transparent px-2.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#303035]" onClick={() => soon("Invites")}>Invite</button></div>
+                <button className="rounded-md border-0 bg-transparent px-2.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#303035]" onClick={() => soon("Invites")}>Invite</button><span className="inline-grid h-5 w-5 place-items-center rounded-full border border-[#b7ddd5] text-sm text-[var(--tf-green)]" aria-hidden="true">◇</span></div>
               <div className="flex items-center gap-2">
                 <Dropdown ariaLabel="Sort forms" value={sort} onChange={(value) => setSort(value as typeof sort)}
                   options={[{ value: "created", label: "Date created" }, { value: "updated", label: "Last updated" }, { value: "name", label: "Alphabetical" }]} />
@@ -331,7 +322,7 @@ export default function Dashboard() {
               {BANNERS.map((b, i) => banners[i] && (
                 <div className="flex items-start gap-4 rounded-[10px] bg-[#faf8fa] p-5 dark:bg-[#26232a]" key={i}>
                   <span className="grid h-10 w-10 flex-none place-items-center rounded-lg bg-[#eee9ef] text-[var(--tf-purple)] dark:bg-[#39313d] dark:text-[#d9c9df]">✦</span>
-                  <div className="flex-1"><p className="m-0 text-base leading-6 text-[var(--tf-text-2)]">{b}</p><button className="mt-2.5 rounded-md border border-[var(--tf-border-mid)] bg-white px-3 py-1.5 text-sm text-[var(--tf-text)] hover:bg-[#f4f4f4] active:scale-95 transition-transform duration-150 dark:border-[#48434d] dark:bg-[#211f25] dark:text-[#f2eff3] dark:hover:bg-[#343039]" onClick={create}>Create form</button></div>
+                  <div className="flex-1"><p className="m-0 text-base leading-6 text-[var(--tf-text-2)]">{b}</p><button className="mt-2.5 rounded-md border border-[var(--tf-border-mid)] bg-white px-3 py-1.5 text-sm text-[var(--tf-text)] hover:bg-[#f4f4f4] dark:border-[#48434d] dark:bg-[#211f25] dark:text-[#f2eff3] dark:hover:bg-[#343039]" onClick={create}>Create form</button></div>
                   <button className="border-0 bg-transparent text-base text-[var(--tf-text)] hover:opacity-75" onClick={() => setBanners((s) => s.map((v, k) => (k === i ? false : v)))}>✕</button>
                 </div>))}
             </div>
@@ -339,13 +330,13 @@ export default function Dashboard() {
             {rows === null && <p className="text-[var(--tf-muted)]">Loading…</p>}
             {rows && shown.length === 0 && <p className="text-[var(--tf-muted)]">No forms found.</p>}
 
-            {view === "list" && shown.length > 0 && (<div key={`list-${selectedWorkspaceId}`} className="zoom-in-enter">
+            {view === "list" && shown.length > 0 && (<>
               <div className="grid grid-cols-[minmax(220px,1fr)_100px_110px_110px_130px_110px_44px] items-center gap-1.5 px-4 pb-3.5 text-base text-[var(--tf-muted)] dark:text-[#aaa2ae] max-[900px]:grid-cols-[1fr_44px]">
                 <span /><span className="max-[900px]:hidden">Contacts</span><span className="max-[900px]:hidden">Responses</span><span className="max-[900px]:hidden">Completed</span><span className="max-[900px]:hidden">Updated</span><span className="max-[900px]:hidden">Integrations</span><span /></div>
               {shown.map((f) => (
                 <div className={`mb-2 grid h-[60px] cursor-pointer grid-cols-[minmax(220px,1fr)_100px_110px_110px_130px_110px_44px] items-center gap-1.5 rounded-xl border border-[var(--tf-border)] bg-white px-4 text-base hover:shadow-[0_2px_8px_rgba(0,0,0,.06)] dark:border-[#39353e] dark:bg-[#26232a] dark:text-[#f2eff3] max-[900px]:grid-cols-[1fr_44px] max-[900px]:[&>*:not(:first-child):not(:last-child)]:hidden ${draggingId === f.id ? "opacity-50 cursor-grabbing" : ""}`} key={f.id}
                   draggable onDragStart={(event) => startFormDrag(event, f)} onDragEnd={() => { setDraggingId(null); setDragTargetId(null); }}
-                  onClick={() => openForm(f.id)}>
+                  onClick={() => router.push(`/builder/${f.id}`)}>
                   <span className="flex items-center gap-2"><Thumb f={f} /><b>{f.title}</b>
                     <i className={`rounded-[10px] px-2 py-0.5 text-xs not-italic ${f.status === "published" ? "bg-[var(--tf-green-bg)] text-[var(--tf-green)]" : "bg-[#eee] text-[#666] dark:bg-[#39393e] dark:text-[#d4d4d8]"}`}>{f.status === "published" ? "Published" : "Draft"}</i></span>
                   <span className="text-[#888] dark:text-[#aaa2ae]">-</span>
@@ -355,14 +346,14 @@ export default function Dashboard() {
                   <span><button className="border-0 bg-transparent text-xl text-[#555] dark:text-[#d5cfd8]" onClick={(e) => { e.stopPropagation(); soon("Integrations"); }}>⊞</button></span>
                   <Menu f={f} />
                 </div>))}
-            </div>)}
+            </>)}
 
             {view === "grid" && (
-              <div key={`grid-${selectedWorkspaceId}`} className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3.5 max-[620px]:grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] zoom-in-enter">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3.5 max-[620px]:grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))]">
                 {shown.map((f) => (
                   <div className={`flex min-h-[136px] cursor-pointer flex-col rounded-xl border border-[var(--tf-border)] bg-white px-5 shadow-none transition-[transform,box-shadow,border-color] duration-150 hover:-translate-y-0.5 hover:border-[var(--tf-border-mid)] hover:shadow-[0_3px_10px_rgba(39,31,42,.05)] dark:border-[#39353e] dark:bg-[#26232a] ${draggingId === f.id ? "opacity-50 cursor-grabbing" : ""}`} key={f.id}
                     draggable onDragStart={(event) => startFormDrag(event, f)} onDragEnd={() => { setDraggingId(null); setDragTargetId(null); }}
-                    onClick={() => openForm(f.id)}>
+                    onClick={() => router.push(`/builder/${f.id}`)}>
                     <div className="flex min-h-[136px] flex-col gap-3.5 py-[17px]">
                       <div className="flex min-w-0 items-center justify-between gap-2">
                         <b className="overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium text-[var(--tf-text)] dark:text-[#f2eff3]" title={f.title}>{f.title}</b>
@@ -426,7 +417,7 @@ export default function Dashboard() {
               if (event.key === "Enter" && searchResults[0]) {
                 setSelectedWorkspaceId(searchResults[0].workspace_id ?? null);
                 setSearchOpen(false);
-                openForm(searchResults[0].id);
+                router.push(`/builder/${searchResults[0].id}`);
               }
             }} />
           {searchTerm.trim() && <div className="flex max-h-[260px] flex-col gap-[3px] overflow-auto">
@@ -434,7 +425,7 @@ export default function Dashboard() {
               <button className="flex justify-between gap-3 rounded-md border-0 bg-transparent p-2.5 text-left text-[var(--tf-text)] hover:bg-[#f5f3f5] dark:hover:bg-[#37313b]" key={result.id} onClick={() => {
                 setSelectedWorkspaceId(result.workspace_id ?? null);
                 setSearchOpen(false);
-                openForm(result.id);
+                router.push(`/builder/${result.id}`);
               }}>
                 <span>{result.title}</span>
                 <small className="text-[var(--tf-muted)]">{workspaces.find((workspace) => workspace.id === result.workspace_id)?.name || "Workspace"}</small>

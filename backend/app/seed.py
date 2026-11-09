@@ -55,7 +55,12 @@ def seed_if_empty(db):
         ("choice", "Pick a session", "", True, ["Morning workshop", "Afternoon talk", "Evening mixer"]),
         ("yes_no", "Any dietary needs?", "", False, []),
     ])
-    db.add(Inquiry(slug="draft0001", title="Untitled draft", status="draft"))
+    draft = Inquiry(slug="draft0001", title="New form", status="draft")
+    page = {"key": "contact", "title": "Contact Info", "hint": ""}
+    for i, (kind, label) in enumerate([("short_text", "First name"), ("short_text", "Last name"),
+                                       ("phone", "Phone number"), ("email", "Email")]):
+        draft.prompts.append(Prompt(position=i, kind=kind, label=label, hint="", mandatory=False, choices=[], page=dict(page)))
+    db.add(draft)
     _fake_replies(db, a, 14, rng)
     _fake_replies(db, b, 6, rng)
     db.commit()

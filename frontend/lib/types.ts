@@ -1,8 +1,10 @@
 export type Kind = "short_text" | "long_text" | "choice" | "dropdown" | "email" | "number" | "yes_no" | "rating" |
   "contact_info" | "phone" | "address" | "url" | "checkbox" | "legal" | "nps" | "opinion_scale" | "ranking" | "matrix" | "date";
 
+export interface PageInfo { key: string; title: string; hint: string }
 export interface PromptDTO {
   id: number; position?: number; kind: Kind; label: string; hint: string; mandatory: boolean; choices: string[];
+  page?: PageInfo | null; // prompts sharing page.key are shown together on one screen
 }
 export interface Inquiry {
   id: number; slug: string; title: string; status: "draft" | "published"; accent: string;

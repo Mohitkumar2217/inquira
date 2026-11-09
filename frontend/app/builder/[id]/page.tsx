@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, ReactNode, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import AddContentModal from "@/components/AddContentModal";
@@ -7,6 +7,8 @@ import Runner from "@/components/Runner";
 import { ThemeToggleButton } from "@/components/ThemeProvider";
 import { useToast } from "@/components/Toasts";
 import { call, errorMessage, send } from "@/lib/api";
+import { buildSteps, contactInfoPrompts, newPageKey } from "@/lib/steps";
+import { USER } from "@/lib/user";
 import { Inquiry, Kind, PromptDTO, kindName } from "@/lib/types";
 
 let tempId = -1;
@@ -27,6 +29,9 @@ export default function Builder() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [previewSession, setPreviewSession] = useState(0);
+  const [pageSel, setPageSel] = useState(false); // true: the page itself (not one of its fields) is selected
+  const [collapsed, setCollapsed] = useState<string[]>([]);
+  const [rowMenu, setRowMenu] = useState<string | null>(null);
   const dragFrom = useRef<number | null>(null);
   const revision = useRef(0);
 
@@ -48,6 +53,7 @@ export default function Builder() {
         if (!active) return;
         setInq(d);
         setSel(d.prompts[0]?.id ?? null);
+        setPageSel(!!d.prompts[0]?.page);
         setDirty(false);
         revision.current = 0;
       })
@@ -65,27 +71,76 @@ export default function Builder() {
   if (loadError) return <div className="center-page grid min-h-screen place-content-center text-center"><p role="alert" className="text-[#c0392b]">{loadError}</p><Link className="btn inline-block rounded border border-[#ccc] bg-white px-3.5 py-2 text-sm text-[#262627] hover:bg-[#f4f4f4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:bg-[#29292d] dark:text-[#e4e4e7]" href="/">Back to forms</Link></div>;
   if (!inq) return <div className="center-page muted grid min-h-screen place-content-center text-center text-[#777] dark:text-[#a1a1aa]">Loading…</div>;
 
+  const steps = buildSteps(inq.prompts);
   const idx = inq.prompts.findIndex((p) => p.id === sel);
   const cur = inq.prompts[idx];
+  const curStep = cur ? steps.findIndex((st) => st.some((q) => q.id === cur.id)) : -1;
+  const curPage = cur?.page ?? null;
+  const onPage = !!(cur && curPage && pageSel);
   const patch = (c: Partial<PromptDTO>) => mutate((d) => Object.assign(d.prompts[idx], c));
+  const patchPage = (c: { title?: string; hint?: string }) => {
+    if (!curPage) return;
+    mutate((d) => d.prompts.forEach((q) => { if (q.page?.key === curPage.key) q.page = { ...q.page, ...c }; }));
+  };
+  const choose = (id: number | null, page = false) => { setSel(id); setPageSel(page); setRowMenu(null); };
 
   const addPrompt = (kind: Kind) => {
-    const p: PromptDTO = { id: tempId--, kind, label: "", hint: "", mandatory: false,
+    const p: PromptDTO = { id: tempId--, kind, label: "", hint: "", mandatory: false, page: null,
       choices: ["choice", "dropdown", "checkbox", "ranking", "matrix"].includes(kind)
         ? ["Option 1", "Option 2"] : [] };
     mutate((d) => d.prompts.push(p));
-    setSel(p.id); setAdding(false);
+    choose(p.id); setAdding(false);
+  };
+  const addContact = () => {
+    const ps = contactInfoPrompts();
+    mutate((d) => d.prompts.push(...ps));
+    choose(ps[0].id, true); setAdding(false);
   };
   const removePrompt = (pid: number) => {
     const i = inq.prompts.findIndex((p) => p.id === pid);
+    const next = inq.prompts[i + 1] ?? inq.prompts[i - 1];
     mutate((d) => d.prompts.splice(i, 1));
-    setSel(inq.prompts[i + 1]?.id ?? inq.prompts[i - 1]?.id ?? null);
+    choose(next?.id ?? null, false);
   };
+  const dupPrompt = (pid: number) => {
+    const i = inq.prompts.findIndex((p) => p.id === pid);
+    const o = inq.prompts[i];
+    const c: PromptDTO = { ...o, choices: [...o.choices], page: o.page ? { ...o.page } : null, id: tempId-- };
+    mutate((d) => d.prompts.splice(i + 1, 0, c));
+    choose(c.id);
+  };
+  const removeStep = (si: number) => {
+    const ids = steps[si].map((q) => q.id);
+    const next = steps[si + 1]?.[0] ?? steps[si - 1]?.[0];
+    mutate((d) => { d.prompts = d.prompts.filter((q) => !ids.includes(q.id)); });
+    choose(next?.id ?? null, !!next?.page);
+  };
+  const dupStep = (si: number) => {
+    const key = newPageKey();
+    const copies: PromptDTO[] = steps[si].map((q) => ({ ...q, id: tempId--, choices: [...q.choices], page: q.page ? { ...q.page, key } : null }));
+    const at = inq.prompts.findIndex((q) => q.id === steps[si][steps[si].length - 1].id) + 1;
+    mutate((d) => d.prompts.splice(at, 0, ...copies));
+    choose(copies[0].id, !!copies[0].page);
+  };
+  // Reordering moves a whole screen: a single question, or a page together with all its fields.
   const dropOn = (to: number) => {
     const from = dragFrom.current; dragFrom.current = null;
     if (from === null || from === to) return;
-    mutate((d) => { const [m] = d.prompts.splice(from, 1); d.prompts.splice(to, 0, m); });
+    mutate((d) => { const st = buildSteps(d.prompts); const [m] = st.splice(from, 1); st.splice(to, 0, m); d.prompts = st.flat(); });
   };
+  const toggleOpen = (key: string) => setCollapsed((c) => (c.includes(key) ? c.filter((k) => k !== key) : [...c, key]));
+
+  const rowCls = (on: boolean) => `min-h-[38px] flex cursor-pointer items-center gap-2 rounded-[7px] px-[7px] py-[5px] text-xs text-[#62626a] hover:bg-[#f0eef1] hover:text-[#322b35] dark:hover:bg-[#333039] dark:hover:text-white ${on ? "on bg-[#f0eef1] text-[#322b35] dark:bg-[#333039] dark:text-white" : ""}`;
+  const MENU_ITEM = "rounded-md border-0 bg-transparent px-3 py-2 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]";
+  const kebab = (id: string, label: string, items: ReactNode) => (
+    <span className="relative ml-auto" onClick={(e) => e.stopPropagation()}>
+      <button className="builder-question-menu border-0 bg-transparent text-[17px] text-[#777] hover:text-[#333] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-[#b4acb9] dark:hover:text-white" aria-label={`More options for ${label}`} aria-expanded={rowMenu === id} onClick={() => setRowMenu(rowMenu === id ? null : id)}>···</button>
+      {rowMenu === id && (<>
+        <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setRowMenu(null)} />
+        <div className="absolute right-0 top-7 z-[21] flex min-w-[150px] flex-col rounded-lg border border-[var(--tf-border)] bg-white p-1.5 text-[var(--tf-text)] shadow-[0_8px_24px_rgba(0,0,0,.12)] dark:border-[#39353e] dark:bg-[#26232a]">{items}</div>
+      </>)}
+    </span>
+  );
 
   const save = async (quiet = false) => {
     if (saving || !inq) return false;
@@ -140,7 +195,7 @@ export default function Builder() {
   const link = `${typeof location !== "undefined" ? location.origin : ""}/f/${inq.slug}`;
 
   return (
-    <div className="builder h-screen min-h-[560px] flex flex-col bg-[var(--tf-panel-bg)] text-[var(--tf-text)] zoom-out-enter" style={{ "--accent": inq.accent } as AccentStyle}>
+    <div className="builder h-screen min-h-[560px] flex flex-col bg-[var(--tf-panel-bg)] text-[var(--tf-text)]" style={{ "--accent": inq.accent } as AccentStyle}>
       <header className="builder-header grid h-[46px] flex-[0_0_46px] grid-cols-[minmax(260px,1fr)_auto_minmax(260px,1fr)] items-center gap-[14px] border-b border-[var(--tf-border)] bg-white px-[18px] dark:bg-[#26232a] max-[900px]:h-[78px] max-[900px]:flex-[0_0_78px] max-[900px]:grid-cols-[minmax(180px,1fr)_auto] max-[900px]:gap-2 max-[900px]:px-2.5 max-[600px]:grid-cols-[minmax(0,1fr)_auto]">
         <div className="builder-breadcrumbs flex min-w-0 items-center gap-2.5 text-[13px] text-[#56565e] max-[600px]:gap-1.5">
           <Link href="/" className="logo text-base text-[#262627] dark:text-[#f2eff3]">Inquira</Link>
@@ -165,7 +220,7 @@ export default function Builder() {
           </button>
           <button className="builder-help size-7 rounded-full border border-[#d5d5da] bg-white text-[13px] text-[#555] hover:bg-[#f3f3f4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-[#4b4550] dark:bg-[#302c34] dark:text-[#e4e4e7] dark:hover:bg-[#3a3540] max-[600px]:hidden" aria-label="Help" onClick={() => toast("Help is coming soon")}>?</button>
           <ThemeToggleButton />
-          <div className="tf-avatar">DC</div>
+          <div className="tf-avatar" title={USER.name}>{USER.initials}</div>
         </div>
       </header>
 
@@ -193,13 +248,44 @@ export default function Builder() {
             <section className="builder-page-list rounded-[10px] border border-[#ececef] bg-white p-2 dark:border-[#39353e] dark:bg-[#252229]">
               <div className="builder-section-title flex items-center justify-between gap-2 text-[13px] font-semibold text-[#34343b] dark:text-[#f2eff3]">Pages <button className="grid size-7 place-items-center rounded-[7px] border border-[#e6e6e9] bg-white text-base text-[#6b6b73] hover:bg-[#f5f5f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-[#44444b] dark:bg-[#303035] dark:text-[#e4e4e7]" aria-label="Add page" onClick={() => setAdding(true)}>＋</button></div>
               <ul>
-              {inq.prompts.map((p, i) => (
-                <li key={p.id} draggable onDragStart={() => (dragFrom.current = i)} onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => dropOn(i)} className={`min-h-[38px] flex cursor-pointer items-center gap-2 rounded-[7px] px-[7px] py-[5px] text-xs text-[#62626a] hover:bg-[#f0eef1] hover:text-[#322b35] dark:hover:bg-[#333039] dark:hover:text-white ${p.id === sel ? "on bg-[#f0eef1] text-[#322b35] dark:bg-[#333039] dark:text-white" : ""}`} onClick={() => setSel(p.id)}>
-                  <span className="builder-question-kind grid h-[22px] w-6 shrink-0 place-items-center rounded-[5px] bg-[#d9eafa] text-[13px] text-[#2a5a86] dark:bg-[#303d4e] dark:text-[#b8d7ff]">≡</span>
-                  <span className="ellipsis">{p.label || kindName(p.kind)}</span>
-                  <button className="builder-question-menu ml-auto border-0 bg-transparent text-[17px] text-[#777] hover:text-[#333] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" aria-label={`More options for ${p.label || kindName(p.kind)}`} onClick={(e) => { e.stopPropagation(); toast("Question options are coming soon"); }}>···</button>
-                </li>))}
+              {steps.map((st, si) => {
+                const pg = st[0].page;
+                if (!pg) {
+                  const p = st[0];
+                  return (
+                    <li key={p.id} draggable onDragStart={() => (dragFrom.current = si)} onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => dropOn(si)} className={rowCls(p.id === sel)} onClick={() => choose(p.id)}>
+                      <span className="builder-question-kind grid h-[22px] w-6 shrink-0 place-items-center rounded-[5px] bg-[#d9eafa] text-[13px] text-[#2a5a86] dark:bg-[#303d4e] dark:text-[#b8d7ff]">≡</span>
+                      <span className="ellipsis">{p.label || kindName(p.kind)}</span>
+                      {kebab("p" + p.id, p.label || kindName(p.kind), <>
+                        <button className={MENU_ITEM} onClick={() => dupPrompt(p.id)}>Duplicate</button>
+                        <button className={MENU_ITEM + " text-[#b43e32]"} onClick={() => removePrompt(p.id)}>Delete</button></>)}
+                    </li>);
+                }
+                const open = !collapsed.includes(pg.key);
+                const headOn = pageSel && st.some((q) => q.id === sel);
+                return (
+                  <Fragment key={pg.key + si}>
+                    <li draggable onDragStart={() => (dragFrom.current = si)} onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => dropOn(si)} className={rowCls(headOn) + " mt-1 font-medium"} onClick={() => choose(st[0].id, true)}>
+                      <button className="grid h-[22px] w-6 shrink-0 place-items-center rounded-[5px] border-0 bg-transparent text-[9px] text-[#555] hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-[#d5cfd8] dark:hover:bg-white/10"
+                        aria-label={`${open ? "Collapse" : "Expand"} ${pg.title || "page"}`} aria-expanded={open}
+                        onClick={(e) => { e.stopPropagation(); toggleOpen(pg.key); }}>{open ? "▲" : "▼"}</button>
+                      <span className="ellipsis">{pg.title || "Page"}</span>
+                      {kebab("s" + si, pg.title || "page", <>
+                        <button className={MENU_ITEM} onClick={() => dupStep(si)}>Duplicate page</button>
+                        <button className={MENU_ITEM + " text-[#b43e32]"} onClick={() => removeStep(si)}>Delete page</button></>)}
+                    </li>
+                    {open && st.map((p, k) => (
+                      <li key={p.id} className={rowCls(!pageSel && p.id === sel)} onClick={() => choose(p.id)}>
+                        <span className="builder-question-kind grid h-[22px] w-6 shrink-0 place-items-center rounded-[5px] bg-[#d9eafa] text-[13px] text-[#2a5a86] dark:bg-[#303d4e] dark:text-[#b8d7ff]">{"ABCDEFGHIJKLMNOPQRSTUVWXYZ"[k] ?? k + 1}</span>
+                        <span className="ellipsis">{p.label || kindName(p.kind)}</span>
+                        {kebab("p" + p.id, p.label || kindName(p.kind), <>
+                          <button className={MENU_ITEM} onClick={() => dupPrompt(p.id)}>Duplicate</button>
+                          <button className={MENU_ITEM + " text-[#b43e32]"} onClick={() => removePrompt(p.id)}>Delete</button></>)}
+                      </li>))}
+                  </Fragment>);
+              })}
                 {inq.prompts.length === 0 && <li className="empty h-auto leading-6 text-[#8a8a91]">Add content to create your first question.</li>}
               </ul>
               <button className="builder-add-welcome mt-2 flex w-full items-center gap-2 rounded-lg border border-dashed border-[#e2e2e5] bg-white p-2 text-left text-xs text-[#414149] hover:bg-[#faf9fb] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-[#39353e] dark:bg-[#252229] dark:text-[#e4e4e7]" onClick={() => toast("Welcome screens are coming soon")}><span className="text-base">✧</span> Add Welcome Screen <b className="ml-auto grid size-6 place-items-center rounded-md border border-[#e7e7e9] text-[15px] font-normal dark:border-[#44444b]">＋</b></button>
@@ -216,20 +302,27 @@ export default function Builder() {
           <section className="middle flex min-w-0 flex-col bg-white p-0 dark:bg-[#1d1b20]">
             <div className="preview-label mb-0 flex h-8 flex-[0_0_32px] items-center justify-between px-3 text-[11px] text-[#797981] dark:border-b dark:border-[#38383e] dark:bg-[#202024] dark:text-[#aaa2ae]"><span>Form preview</span><span className="text-[10px] max-[600px]:hidden">Edits are saved when you publish</span></div>
             <div className={`preview-frame relative min-h-0 flex-1 overflow-hidden rounded-none border border-[#eeeeef] bg-[#fafafa] shadow-none dark:border-[#38383e] dark:bg-[#1d1d21] ${previewDevice === "mobile" ? "mobile-view flex justify-center border-x border-[var(--tf-border)] px-3" : ""}`}>
-              <Runner key={`${sel}-${idx}-${inq.accent}-${inq.closing_heading}`} inquiry={inq} startAt={Math.max(idx, 0)} preview onSubmit={async () => {}} />
+              <Runner key={`${sel}-${idx}-${inq.accent}-${inq.closing_heading}`} inquiry={inq} startAt={Math.max(curStep, 0)} preview onSubmit={async () => {}} />
             </div>
           </section>
           <aside className="right flex min-w-0 flex-col gap-2 overflow-auto border-l-0 bg-[#f7f7f8] p-3 dark:bg-[#252229] max-[900px]:hidden">
             <div className="builder-inspector-section rounded-[10px] border border-[#ececef] bg-white p-3 pb-2.5 dark:border-[#39353e] dark:bg-[#252229]">
               <div className="builder-section-title flex items-center justify-between gap-2 text-[13px] font-semibold text-[#34343b] dark:text-[#f2eff3]">Question <button className="grid size-7 place-items-center rounded-[7px] border border-[#e6e6e9] bg-white text-base text-[#6b6b73] hover:bg-[#f5f5f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-[#44444b] dark:bg-[#303035] dark:text-[#e4e4e7]" aria-label="Question help" onClick={() => toast("Select a question to edit its content")}>ⓘ</button></div>
               <div className="builder-type-toggle mt-2.5 grid grid-cols-2 gap-1 rounded-[7px] bg-[#f1f1f3] p-[3px] dark:bg-[#303035]">
-                <button className="active" disabled>≡ <span>{cur ? kindName(cur.kind) : "Text"}</span></button>
+                <button className="active" disabled>≡ <span>{cur ? (onPage ? "Page" : kindName(cur.kind)) : "Text"}</span></button>
                 <button disabled title="Video questions are not supported yet">▣ <span>Video</span></button>
               </div>
             </div>
             <div className="builder-inspector-answer rounded-[10px] border border-[#ececef] bg-white p-3 dark:border-[#39353e] dark:bg-[#252229]">
               <div className="builder-section-title flex items-center justify-between gap-2 text-[13px] font-semibold text-[#34343b] dark:text-[#f2eff3]">Answer</div>
-              {cur ? (<>
+              {onPage && curPage ? (<>
+                <label>Page title</label>
+                <input className="box-input" value={curPage.title} placeholder="Page title" onChange={(e) => patchPage({ title: e.target.value })} />
+                <label>Description</label>
+                <input className="box-input" value={curPage.hint} placeholder="Description (optional)" onChange={(e) => patchPage({ hint: e.target.value })} />
+                <p className="muted mt-2 text-xs text-[#777] dark:text-[#a1a1aa]">{steps[curStep]?.length ?? 0} fields on this page. Select a field on the left to edit its question or make it required.</p>
+                <button className="builder-answer-type mt-3.5 flex w-full items-center justify-between border-0 border-t border-[#eeeeef] bg-transparent pt-[9px] text-left text-xs text-[#4b4b53] hover:text-[#28252b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-[#3a3a40] dark:text-[#e4e4e7]" onClick={() => toast("Answer media is coming soon")}>Image or video <span className="grid size-[25px] place-items-center rounded-md border border-[#e6e6e9] text-base dark:border-[#44444b]">＋</span></button>
+              </>) : cur ? (<>
                 <label>Question</label>
                 <textarea className="box-input" rows={2} value={cur.label} placeholder="Type your question" onChange={(e) => patch({ label: e.target.value })} />
                 <label>Description</label>
@@ -253,7 +346,7 @@ export default function Builder() {
               <div className="builder-section-title flex items-center justify-between gap-2 text-[13px] font-semibold text-[#34343b] dark:text-[#f2eff3]">Logic <button className="grid size-7 place-items-center rounded-[7px] border border-[#e6e6e9] bg-white text-base text-[#6b6b73] hover:bg-[#f5f5f6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-[#44444b] dark:bg-[#303035] dark:text-[#e4e4e7]" aria-label="Add logic" onClick={() => toast("Logic jumps are coming soon")}>＋</button></div>
               {cur && <button className="btn rounded border border-[#ccc] bg-white px-3.5 py-2 text-sm text-[#262627] hover:bg-[#f4f4f4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-[#45454b] dark:bg-[#29292d] dark:text-[#e4e4e7]" onClick={() => toast("Logic jumps are coming soon")}>＋ Add logic jump</button>}
             </div>
-            {cur && <div className="builder-delete-question"><button className="btn danger rounded border border-[#e6b8b2] bg-white px-3.5 py-2 text-sm text-[#c0392b] hover:bg-[#fdf3f2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:bg-[#29292d]" onClick={() => removePrompt(cur.id)}>Delete question</button></div>}
+            {cur && <div className="builder-delete-question"><button className="btn danger rounded border border-[#e6b8b2] bg-white px-3.5 py-2 text-sm text-[#c0392b] hover:bg-[#fdf3f2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:bg-[#29292d]" onClick={() => (onPage ? removeStep(curStep) : removePrompt(cur.id))}>{onPage ? "Delete page" : "Delete question"}</button></div>}
           </aside>
         </div>)}
 
@@ -303,8 +396,8 @@ export default function Builder() {
       )}
 
       {adding && (
-        <AddContentModal onClose={() => setAdding(false)} onAdd={addPrompt}
-          onImport={(ps) => { mutate((d) => d.prompts.push(...ps)); setSel(ps[0].id); setAdding(false); }} />)}
+        <AddContentModal onClose={() => setAdding(false)} onAdd={addPrompt} onAddContact={addContact}
+          onImport={(ps) => { mutate((d) => d.prompts.push(...ps)); choose(ps[0].id); setAdding(false); }} />)}
     </div>
   );
 }

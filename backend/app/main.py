@@ -21,6 +21,10 @@ from .seed import seed_if_empty
 @asynccontextmanager
 async def lifespan(_):
     Base.metadata.create_all(engine)
+    # lightweight migration for databases created before multi-field pages existed
+    if "page" not in {column["name"] for column in inspect(engine).get_columns("prompts")}:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE prompts ADD COLUMN page JSON"))
     if "workspace_id" not in {column["name"] for column in inspect(engine).get_columns("inquiries")}:
         with engine.begin() as connection:
             connection.execute(text(
@@ -50,7 +54,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 # ---------- helpers ----------
 def prompt_out(p):
     return {"id": p.id, "position": p.position, "kind": p.kind, "label": p.label, "hint": p.hint or "",
-            "mandatory": bool(p.mandatory), "choices": p.choices or []}
+            "mandatory": bool(p.mandatory), "choices": p.choices or [], "page": p.page or None}
 
 
 def inquiry_out(i, full=True):
@@ -100,6 +104,7 @@ def apply_payload(inq, data):
             kept.add(p.id)
         p.position, p.kind, p.label, p.hint = pos, pd.kind, pd.label, pd.hint
         p.mandatory = pd.mandatory
+        p.page = pd.page.model_dump() if pd.page else None
         p.choices = [c for c in pd.choices if c.strip()] if pd.kind in (
             "choice", "dropdown", "checkbox", "ranking", "matrix"
         ) else []
@@ -110,6 +115,17 @@ def apply_payload(inq, data):
 
 def new_slug():
     return uuid.uuid4().hex[:8]
+
+
+def clone_prompts(src, dest):
+    """Copy prompts into `dest`; every multi-field page gets a fresh key so copies never share a page."""
+    keys = {}
+    for p in src.prompts:
+        page = dict(p.page) if p.page else None
+        if page:
+            page["key"] = keys.setdefault(page["key"], new_slug())
+        dest.prompts.append(Prompt(position=p.position, kind=p.kind, label=p.label, hint=p.hint,
+                                   mandatory=p.mandatory, choices=list(p.choices or []), page=page))
 
 
 # ---------- creator: inquiries ----------
@@ -231,9 +247,7 @@ def duplicate(iid: int, db: Session = Depends(get_db)):
     src = find(db, iid)
     cp = Inquiry(slug=new_slug(), workspace_id=src.workspace_id, title=f"{src.title} (copy)", accent=src.accent,
                  closing_heading=src.closing_heading, closing_text=src.closing_text)
-    for p in src.prompts:
-        cp.prompts.append(Prompt(position=p.position, kind=p.kind, label=p.label, hint=p.hint,
-                                 mandatory=p.mandatory, choices=list(p.choices or [])))
+    clone_prompts(src, cp)
     db.add(cp)
     db.commit()
     return inquiry_out(cp, False)
@@ -245,9 +259,7 @@ def copy_to_workspace(iid: int, workspace_id: int, db: Session = Depends(get_db)
     target = find_workspace(db, workspace_id)
     cp = Inquiry(slug=new_slug(), workspace_id=target.id, title=f"{src.title} (copy)", accent=src.accent,
                  closing_heading=src.closing_heading, closing_text=src.closing_text)
-    for p in src.prompts:
-        cp.prompts.append(Prompt(position=p.position, kind=p.kind, label=p.label, hint=p.hint,
-                                 mandatory=p.mandatory, choices=list(p.choices or [])))
+    clone_prompts(src, cp)
     db.add(cp)
     db.commit()
     return inquiry_out(cp, False)

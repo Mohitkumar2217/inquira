@@ -44,6 +44,7 @@ class Prompt(Base):
     hint = Column(Text, default="")
     mandatory = Column(Boolean, default=False)
     choices = Column(JSON, default=list)
+    page = Column(JSON, nullable=True)  # {key,title,hint}: prompts sharing a key form one multi-field page
     inquiry = relationship("Inquiry", back_populates="prompts")
     items = relationship("ReplyItem", back_populates="prompt", cascade="all, delete-orphan")
 

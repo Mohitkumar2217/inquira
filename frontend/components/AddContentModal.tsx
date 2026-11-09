@@ -4,10 +4,10 @@ import { useToast } from "@/components/Toasts";
 import { nextTempId, toPrompts } from "@/lib/guess";
 import { Kind, PromptDTO } from "@/lib/types";
 
-type Item = { name: string; icon: string; kind?: Kind; pro?: boolean; unavailable?: string };
+type Item = { name: string; icon: string; kind?: Kind; action?: "contact"; pro?: boolean; unavailable?: string };
 const SECTIONS: { title: string; tone: string; span?: number; items: Item[] }[] = [
   { title: "Contact info", tone: "pink", items: [
-    { name: "Contact Info", icon: "◉", kind: "contact_info" }, { name: "Email", icon: "✉", kind: "email" }, { name: "Phone Number", icon: "☎", kind: "phone" },
+    { name: "Contact Info", icon: "◉", action: "contact" }, { name: "Email", icon: "✉", kind: "email" }, { name: "Phone Number", icon: "☎", kind: "phone" },
     { name: "Address", icon: "⌖", kind: "address" }, { name: "Website", icon: "↗", kind: "url" }] },
   { title: "Choice", tone: "purple", items: [
     { name: "Multiple Choice", icon: "☰", kind: "choice" }, { name: "Dropdown", icon: "⌄", kind: "dropdown" },
@@ -47,9 +47,9 @@ const LEAD_TEMPLATE = (): PromptDTO[] => {
   }));
 };
 
-interface Props { onClose: () => void; onAdd: (k: Kind) => void; onImport: (ps: PromptDTO[]) => void; }
+interface Props { onClose: () => void; onAdd: (k: Kind) => void; onAddContact: () => void; onImport: (ps: PromptDTO[]) => void; }
 
-export default function AddContentModal({ onClose, onAdd, onImport }: Props) {
+export default function AddContentModal({ onClose, onAdd, onAddContact, onImport }: Props) {
   const toast = useToast();
   const [tab, setTab] = useState<"elements" | "import" | "ai">("elements");
   const [q, setQ] = useState("");
@@ -94,7 +94,7 @@ export default function AddContentModal({ onClose, onAdd, onImport }: Props) {
                     <div className={s.span ? "am-two grid grid-cols-2 content-start gap-x-5 max-[500px]:grid-cols-1" : ""}>
                       {items.map((i) => (
                                     <button key={i.name} className={`am-item flex w-full items-center gap-3 rounded-lg border-0 bg-transparent px-1.5 py-2 text-left text-[17px] text-[#555] hover:bg-[#f3f3f3] hover:text-[#111] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent dark:text-[#e4e4e7] dark:hover:bg-[#303035] dark:hover:text-white ${i.kind ? "" : "off opacity-[.78]"}`}
-                                      disabled={!i.kind} title={i.unavailable} onClick={() => i.kind && onAdd(i.kind)}>
+                                      disabled={!i.kind && !i.action} title={i.unavailable} onClick={() => (i.action === "contact" ? onAddContact() : i.kind && onAdd(i.kind))}>
                           <i className={`am-ico grid size-[30px] shrink-0 place-items-center rounded-[7px] text-sm not-italic text-[#333] ${i.name.match(/Welcome|Partial|Statement|Group|End|Redirect/) ? "gray bg-[#ddd]" : s.tone === "pink" ? "pink bg-[#f8c8d4]" : s.tone === "purple" ? "purple bg-[#dcd4f7]" : s.tone === "green" ? "green bg-[#c4e2bb]" : s.tone === "blue" ? "blue bg-[#c3dcf7]" : "yellow bg-[#fbe0a0"} dark:text-[#e4e4e7]`}>
                             {i.name === "Dropdown" ? <svg className="am-dropdown-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" /></svg> : i.icon}
                           </i>
