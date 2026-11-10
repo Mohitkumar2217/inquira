@@ -7,7 +7,7 @@ import AddContentModal from "@/components/AddContentModal";
 import Runner from "@/components/Runner";
 import ToggleSwitch from "@/components/ToggleSwitch";
 import PublishCelebration from "@/components/PublishCelebration";
-import { ThemeToggleButton } from "@/components/ThemeProvider";
+import { ThemeToggleButton, useTheme } from "@/components/ThemeProvider";
 import AccountMenu from "@/components/AccountMenu";
 import { useToast } from "@/components/Toasts";
 import { call, errorMessage, send } from "@/lib/api";
@@ -222,9 +222,22 @@ export default function Builder() {
   const [autofillAnswer, setAutofillAnswer] = useState(false);
   const [canvasMode, setCanvasMode] = useState<"edit" | "interactive">("edit");
   const [defaultCountryCode, setDefaultCountryCode] = useState("+1 (US)");
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [designOpen, setDesignOpen] = useState(false);
   const [hoveredTheme, setHoveredTheme] = useState<string | null>(null);
   const [activeTheme, setActiveTheme] = useState<string>("Pearl white");
+
+  const currentTheme = THEMES.find((t) => t.name === (hoveredTheme || activeTheme)) || THEMES[0];
+  const isCustomTheme = hoveredTheme || activeTheme !== "Pearl white";
+
+  const canvasBgColor = isDark
+    ? (isCustomTheme && currentTheme.name !== "Pearl white" ? currentTheme.bg : "#19191c")
+    : currentTheme.bg;
+
+  const canvasTextColor = isDark
+    ? (isCustomTheme && currentTheme.name !== "Pearl white" ? currentTheme.text : "#f2eff3")
+    : currentTheme.text;
   const [formSettingsOpen, setFormSettingsOpen] = useState(false);
   const [formSettingsTab, setFormSettingsTab] = useState<"general" | "access" | "language">("general");
   const [typeformBranding, setTypeformBranding] = useState(true);
@@ -1043,8 +1056,8 @@ export default function Builder() {
           <section
             className="middle relative flex min-w-0 flex-1 flex-col transition-colors duration-200"
             style={{
-              backgroundColor: (THEMES.find((t) => t.name === (hoveredTheme || activeTheme)) || THEMES[0]).bg,
-              color: (THEMES.find((t) => t.name === (hoveredTheme || activeTheme)) || THEMES[0]).text,
+              backgroundColor: canvasBgColor,
+              color: canvasTextColor,
             }}
           >
             {sel === "welcome" ? (
@@ -1058,15 +1071,15 @@ export default function Builder() {
                 >
                   <input
                     aria-label="Welcome screen heading"
-                    className="w-full bg-transparent text-center text-[clamp(24px,3.5vw,34px)] font-normal outline-none placeholder:text-[#a1a1aa] mb-2"
-                    style={{ color: (THEMES.find((t) => t.name === (hoveredTheme || activeTheme)) || THEMES[0]).text }}
+                    className="w-full bg-transparent text-center text-[clamp(24px,3.5vw,34px)] font-normal outline-none placeholder:text-[#a1a1aa] dark:placeholder:text-[#71717a] mb-2"
+                    style={{ color: canvasTextColor }}
                     placeholder="Say hi! Recall information with @"
                     value={inq.settings?.welcome_screen?.title ?? "Say hi! Recall information with @"}
                     onChange={(e) => patchWelcome({ title: e.target.value })}
                   />
                   <input
                     aria-label="Welcome screen description"
-                    className="w-full bg-transparent text-center text-[15px] italic text-[#737373] outline-none placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] mb-8"
+                    className="w-full bg-transparent text-center text-[15px] italic text-[#737373] outline-none placeholder:text-[#a1a1aa] dark:text-[#c4c4ca] dark:placeholder:text-[#71717a] mb-8"
                     placeholder="Description (optional)"
                     value={inq.settings?.welcome_screen?.hint ?? ""}
                     onChange={(e) => patchWelcome({ hint: e.target.value })}
@@ -1106,8 +1119,8 @@ export default function Builder() {
                   </div>
                   <input
                     aria-label="Ending heading"
-                    className="w-full bg-transparent text-center text-[clamp(22px,3.2vw,30px)] font-normal outline-none placeholder:text-[#a1a1aa] mb-2"
-                    style={{ color: (THEMES.find((t) => t.name === (hoveredTheme || activeTheme)) || THEMES[0]).text }}
+                    className="w-full bg-transparent text-center text-[clamp(22px,3.2vw,30px)] font-normal outline-none placeholder:text-[#a1a1aa] dark:placeholder:text-[#71717a] mb-2"
+                    style={{ color: canvasTextColor }}
                     placeholder="Thanks for completing this form"
                     value={inq.closing_heading}
                     onChange={(e) => patchEnding({ closing_heading: e.target.value })}
@@ -1115,7 +1128,7 @@ export default function Builder() {
                   <textarea
                     aria-label="Ending message"
                     rows={2}
-                    className="w-full max-w-md bg-transparent text-center text-base text-[#737373] outline-none placeholder:text-[#a1a1aa] dark:text-[#b4acb9] mb-6 resize-none"
+                    className="w-full max-w-md bg-transparent text-center text-base text-[#737373] outline-none placeholder:text-[#a1a1aa] dark:text-[#c4c4ca] dark:placeholder:text-[#71717a] mb-6 resize-none"
                     placeholder="Your answers have been recorded."
                     value={inq.closing_text}
                     onChange={(e) => patchEnding({ closing_text: e.target.value })}
@@ -1143,14 +1156,14 @@ export default function Builder() {
                     </span>
                     <div className="flex-1">
                       <input
-                        className="w-full bg-transparent text-[clamp(22px,3.2vw,28px)] font-normal outline-none placeholder:text-[#a1a1aa]"
-                        style={{ color: (THEMES.find((t) => t.name === (hoveredTheme || activeTheme)) || THEMES[0]).text }}
+                        className="w-full bg-transparent text-[clamp(22px,3.2vw,28px)] font-normal outline-none placeholder:text-[#a1a1aa] dark:placeholder:text-[#71717a]"
+                        style={{ color: canvasTextColor }}
                         placeholder="Your question here. Recall information with @"
                         value={cur.label}
                         onChange={(e) => patch({ label: e.target.value })}
                       />
                       <input
-                        className="mt-1 w-full bg-transparent text-[15px] italic text-[#737373] outline-none placeholder:text-[#a1a1aa] dark:text-[#a1a1aa]"
+                        className="mt-1 w-full bg-transparent text-[15px] italic text-[#737373] outline-none placeholder:text-[#a1a1aa] dark:text-[#c4c4ca] dark:placeholder:text-[#71717a]"
                         placeholder="Description (optional)"
                         value={cur.hint}
                         onChange={(e) => patch({ hint: e.target.value })}

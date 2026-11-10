@@ -3703,12 +3703,16 @@ html.dark .tf-main,
 html.dark .tf-side,
 html.dark .builder .left,
 html.dark .builder .right,
-html.dark .builder .middle,
 html.dark .builder .preview-frame,
 html.dark .builder .runner,
 html.dark .fullscreen {
   background: #1d1b20 !important;
   color: #f2eff3
+}
+
+html.dark .builder .middle {
+  background: #1d1b20;
+  color: #f2eff3;
 }
 
 html.dark .tf-top,
