@@ -10,15 +10,19 @@ const SECTIONS: { title: string; tone: string; span?: number; items: Item[] }[] 
     title: "Recommended",
     tone: "blue",
     items: [
-      { name: "Video and Audio", icon: "▶", kind: "short_text" },
       { name: "Multiple Choice", icon: "☰", kind: "choice" },
-      { name: "Short Text", icon: "▭", kind: "short_text" },
+      { name: "Short Text", icon: "Aa", kind: "short_text" },
+      { name: "Email", icon: "✉", kind: "email" },
+      { name: "Number", icon: "#", kind: "number" },
+      { name: "Rating", icon: "★", kind: "rating" },
+      { name: "Yes/No", icon: "✓", kind: "yes_no" },
     ],
   },
   {
     title: "Contact Info",
     tone: "pink",
     items: [
+      { name: "Contact Info", icon: "◉", action: "contact" },
       { name: "Email", icon: "✉", kind: "email" },
       { name: "Phone Number", icon: "☎", kind: "phone" },
       { name: "Address", icon: "⌖", kind: "address" },
@@ -26,10 +30,12 @@ const SECTIONS: { title: string; tone: string; span?: number; items: Item[] }[] 
     ],
   },
   {
-    title: "Text & Video",
+    title: "Text & Media",
     tone: "blue",
     items: [
-      { name: "Long Text", icon: "≡", kind: "long_text" },
+      { name: "Short Text", icon: "Aa", kind: "short_text" },
+      { name: "Long Text", icon: "¶", kind: "long_text" },
+      { name: "Number", icon: "#", kind: "number" },
       { name: "Statement", icon: "❝", kind: "short_text" },
     ],
   },
@@ -37,19 +43,23 @@ const SECTIONS: { title: string; tone: string; span?: number; items: Item[] }[] 
     title: "Choice",
     tone: "purple",
     items: [
-      { name: "Dropdown", icon: "⌄", kind: "dropdown" },
+      { name: "Multiple Choice", icon: "☰", kind: "choice" },
+      { name: "Dropdown", icon: "▾", kind: "dropdown" },
+      { name: "Checkboxes", icon: "☑", kind: "checkbox" },
       { name: "Picture Choice", icon: "▧", kind: "choice" },
       { name: "Yes/No", icon: "✓", kind: "yes_no" },
-      { name: "Legal", icon: "⚖", kind: "legal" },
+      { name: "Legal Consent", icon: "⚖", kind: "legal" },
     ],
   },
   {
     title: "Rating & Ranking",
     tone: "green",
     items: [
+      { name: "Rating", icon: "★", kind: "rating" },
       { name: "Opinion Scale", icon: "▂▄", kind: "opinion_scale" },
-      { name: "Rating", icon: "☆", kind: "rating" },
+      { name: "Net Promoter Score (NPS)", icon: "◔", kind: "nps" },
       { name: "Ranking", icon: "①", kind: "ranking" },
+      { name: "Matrix", icon: "⣿", kind: "matrix" },
     ],
   },
   {
@@ -57,10 +67,10 @@ const SECTIONS: { title: string; tone: string; span?: number; items: Item[] }[] 
     tone: "yellow",
     span: 2,
     items: [
+      { name: "Date / Scheduler", icon: "▦", kind: "date" },
       { name: "Welcome Screen", icon: "◫", action: "welcome" },
       { name: "Endings", icon: "◧", action: "ending" },
       { name: "File Upload", icon: "⇪", kind: "short_text", pro: true },
-      { name: "Scheduler", icon: "▤", kind: "date" },
     ],
   },
 ];

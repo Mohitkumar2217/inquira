@@ -11,8 +11,18 @@ class Workspace(Base):
     name = Column(String(100), nullable=False, unique=True)
     is_private = Column(Boolean, nullable=False, default=False)
     order_index = Column(Integer, nullable=False, default=0)
+    last_visited_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     inquiries = relationship("Inquiry", back_populates="workspace")
+
+
+class UserPreference(Base):
+    """Creator global preferences, e.g. the last visited/active workspace."""
+    __tablename__ = "user_preferences"
+    id = Column(Integer, primary_key=True)
+    user_key = Column(String(50), default="default", unique=True, index=True)
+    active_workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="SET NULL"), nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class Inquiry(Base):
@@ -24,6 +34,8 @@ class Inquiry(Base):
     status = Column(String(12), nullable=False, default="draft")  # draft | published
     workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=True, index=True)
     accent = Column(String(9), nullable=False, default="#0445AF")
+    theme = Column(String(50), default="Pearl white")
+    settings = Column(JSON, default=dict)
     closing_heading = Column(String(200), default="Thanks for completing this")
     closing_text = Column(Text, default="Your answers have been recorded.")
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -40,12 +52,14 @@ class Prompt(Base):
     id = Column(Integer, primary_key=True)
     inquiry_id = Column(Integer, ForeignKey("inquiries.id", ondelete="CASCADE"), index=True, nullable=False)
     position = Column(Integer, nullable=False, default=0)
-    kind = Column(String(20), nullable=False)
+    kind = Column(String(50), nullable=False)
     label = Column(Text, nullable=False, default="")
     hint = Column(Text, default="")
     mandatory = Column(Boolean, default=False)
     choices = Column(JSON, default=list)
     page = Column(JSON, nullable=True)  # {key,title,hint}: prompts sharing a key form one multi-field page
+    properties = Column(JSON, default=dict)
+    logic_rules = Column(JSON, default=dict)
     inquiry = relationship("Inquiry", back_populates="prompts")
     items = relationship("ReplyItem", back_populates="prompt", cascade="all, delete-orphan")
 
@@ -94,11 +108,13 @@ class Question(Base):
     id = Column(Integer, primary_key=True, index=True)
     form_id = Column(Integer, ForeignKey("forms.id", ondelete="CASCADE"), index=True, nullable=False)
     title = Column(String(500), default="")
+    hint = Column(Text, default="")
     question_type = Column(String(50), default="short_text")  # short_text, long_text, multiple_choice, etc.
     is_required = Column(Boolean, default=False)
     order = Column(Integer, default=0)
-    properties = Column(JSON, nullable=True)
-    logic_rules = Column(JSON, nullable=True)
+    choices = Column(JSON, default=list)
+    properties = Column(JSON, default=dict)
+    logic_rules = Column(JSON, default=dict)
 
     form = relationship("Form", back_populates="questions")
     answers = relationship("Answer", back_populates="question", cascade="all, delete-orphan")

@@ -1,10 +1,10 @@
 import random
 from datetime import datetime, timedelta
-from .models import Inquiry, Prompt, Reply, ReplyItem, Form, Question, FormResponse, Answer
+from .models import Inquiry, Prompt, Reply, ReplyItem, Form, Question, FormResponse, Answer, Workspace
 
 
-def _make(db, slug, title, accent, prompts):
-    inq = Inquiry(slug=slug, title=title, status="published", accent=accent)
+def _make(db, slug, title, accent, prompts, workspace_id=None):
+    inq = Inquiry(slug=slug, title=title, status="published", accent=accent, workspace_id=workspace_id)
     for i, (kind, label, hint, mand, choices) in enumerate(prompts):
         inq.prompts.append(Prompt(position=i, kind=kind, label=label, hint=hint, mandatory=mand, choices=choices))
     db.add(inq)
@@ -38,6 +38,19 @@ def _fake_replies(db, inq, n, rng):
 def seed_if_empty(db):
     if db.query(Inquiry).count():
         return
+
+    # Ensure default workspaces exist
+    pw = db.query(Workspace).filter_by(is_private=True).first()
+    if not pw:
+        pw = Workspace(name="My workspace", is_private=True, order_index=0)
+        db.add(pw)
+        db.flush()
+    team_ws = db.query(Workspace).filter_by(name="Marketing Team").first()
+    if not team_ws:
+        team_ws = Workspace(name="Marketing Team", is_private=False, order_index=1)
+        db.add(team_ws)
+        db.flush()
+
     rng = random.Random(7)
     a = _make(db, "feedback1", "Customer Feedback Survey", "#0445AF", [
         ("short_text", "What's your name?", "First name is fine", True, []),
@@ -48,14 +61,14 @@ def seed_if_empty(db):
         ("number", "How many times have you used us this year?", "", False, []),
         ("dropdown", "Which plan are you on?", "", False, ["Free", "Pro", "Team"]),
         ("long_text", "Anything else you'd like to tell us?", "Optional", False, []),
-    ])
+    ], workspace_id=pw.id)
     b = _make(db, "rsvp2024", "Event RSVP", "#B5179E", [
         ("short_text", "Who's coming?", "", True, []),
         ("email", "Where can we send your ticket?", "", True, []),
         ("choice", "Pick a session", "", True, ["Morning workshop", "Afternoon talk", "Evening mixer"]),
         ("yes_no", "Any dietary needs?", "", False, []),
-    ])
-    draft = Inquiry(slug="draft0001", title="New form", status="draft")
+    ], workspace_id=team_ws.id)
+    draft = Inquiry(slug="draft0001", title="New form", status="draft", workspace_id=pw.id)
     page = {"key": "contact", "title": "Contact Info", "hint": ""}
     for i, (kind, label) in enumerate([("short_text", "First name"), ("short_text", "Last name"),
                                        ("phone", "Phone number"), ("email", "Email")]):
@@ -65,7 +78,7 @@ def seed_if_empty(db):
     _fake_replies(db, b, 6, rng)
 
     if not db.query(Form).count():
-        f1 = Form(title="Product Feedback Form", is_published=True)
+        f1 = Form(title="Product Feedback Form", is_published=True, workspace_id=pw.id)
         q1 = Question(title="What is your full name?", question_type="short_text", is_required=True, order=0)
         q2 = Question(title="What is your email address?", question_type="email", is_required=True, order=1)
         q3 = Question(title="How satisfied are you with our product?", question_type="rating", is_required=False, order=2)

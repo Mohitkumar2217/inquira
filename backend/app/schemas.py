@@ -22,14 +22,18 @@ class PromptIn(BaseModel):
     mandatory: bool = False
     choices: List[str] = Field(default_factory=list)
     page: Optional[PageIn] = None
+    properties: Optional[dict] = Field(default_factory=dict)
+    logic_rules: Optional[dict] = Field(default_factory=dict)
 
 
 class InquiryIn(BaseModel):
     title: str = "Untitled form"
     workspace_id: Optional[int] = None
     accent: str = "#0445AF"
+    theme: Optional[str] = "Pearl white"
     closing_heading: str = "Thanks for completing this"
     closing_text: str = "Your answers have been recorded."
+    settings: Optional[dict] = Field(default_factory=dict)
     prompts: List[PromptIn] = Field(default_factory=list)
 
 
@@ -45,6 +49,14 @@ class WorkspaceMoveIn(BaseModel):
     workspace_id: int
 
 
+class ActiveWorkspaceIn(BaseModel):
+    workspace_id: int
+
+
+class UserPreferencesIn(BaseModel):
+    active_workspace_id: Optional[int] = None
+
+
 class ReplyIn(BaseModel):
     answers: dict
 
@@ -52,13 +64,19 @@ class ReplyIn(BaseModel):
 class FormCreate(BaseModel):
     title: str = "Untitled form"
     is_published: bool = False
+    theme: Optional[str] = "Pearl white"
+    workspace_id: Optional[int] = None
 
 
 class QuestionCreate(BaseModel):
     title: str = ""
+    hint: str = ""
     question_type: str = "short_text"
     is_required: bool = False
     order: int = 0
+    choices: List[str] = Field(default_factory=list)
+    properties: Optional[dict] = Field(default_factory=dict)
+    logic_rules: Optional[dict] = Field(default_factory=dict)
 
 
 class AnswerSubmit(BaseModel):

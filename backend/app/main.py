@@ -12,9 +12,9 @@ from sqlalchemy import func, inspect, text
 from sqlalchemy.orm import Session
 
 from .database import Base, SessionLocal, engine, get_db
-from .models import Inquiry, Prompt, Reply, ReplyItem, Workspace, Form, Question, FormResponse, Answer
+from .models import Inquiry, Prompt, Reply, ReplyItem, Workspace, Form, Question, FormResponse, Answer, UserPreference
 from .rules import check_value, valid_kind
-from .schemas import InquiryIn, ReplyIn, TitleIn, WorkspaceIn, WorkspaceMoveIn, FormCreate, QuestionCreate, SubmitResponse, FormResponseOut
+from .schemas import InquiryIn, ReplyIn, TitleIn, WorkspaceIn, WorkspaceMoveIn, FormCreate, QuestionCreate, SubmitResponse, FormResponseOut, ActiveWorkspaceIn, UserPreferencesIn
 from .seed import seed_if_empty
 
 
@@ -22,17 +22,51 @@ from .seed import seed_if_empty
 async def lifespan(_):
     Base.metadata.create_all(engine)
     # lightweight migration for databases created before multi-field pages existed
-    if "page" not in {column["name"] for column in inspect(engine).get_columns("prompts")}:
-        with engine.begin() as connection:
+    prompt_cols = {column["name"] for column in inspect(engine).get_columns("prompts")}
+    with engine.begin() as connection:
+        if "page" not in prompt_cols:
             connection.execute(text("ALTER TABLE prompts ADD COLUMN page JSON"))
-    if "workspace_id" not in {column["name"] for column in inspect(engine).get_columns("inquiries")}:
-        with engine.begin() as connection:
+        if "properties" not in prompt_cols:
+            connection.execute(text("ALTER TABLE prompts ADD COLUMN properties JSON"))
+        if "logic_rules" not in prompt_cols:
+            connection.execute(text("ALTER TABLE prompts ADD COLUMN logic_rules JSON"))
+
+    inq_cols = {column["name"] for column in inspect(engine).get_columns("inquiries")}
+    with engine.begin() as connection:
+        if "workspace_id" not in inq_cols:
             connection.execute(text(
                 "ALTER TABLE inquiries ADD COLUMN workspace_id INTEGER REFERENCES workspaces(id)"
             ))
-    if "order_index" not in {column["name"] for column in inspect(engine).get_columns("workspaces")}:
-        with engine.begin() as connection:
+        if "theme" not in inq_cols:
+            connection.execute(text("ALTER TABLE inquiries ADD COLUMN theme VARCHAR(50) DEFAULT 'Pearl white'"))
+        if "settings" not in inq_cols:
+            connection.execute(text("ALTER TABLE inquiries ADD COLUMN settings JSON"))
+
+    ws_cols = {column["name"] for column in inspect(engine).get_columns("workspaces")}
+    with engine.begin() as connection:
+        if "order_index" not in ws_cols:
             connection.execute(text("ALTER TABLE workspaces ADD COLUMN order_index INTEGER DEFAULT 0"))
+        if "last_visited_at" not in ws_cols:
+            connection.execute(text("ALTER TABLE workspaces ADD COLUMN last_visited_at DATETIME"))
+
+    form_cols = {column["name"] for column in inspect(engine).get_columns("forms")}
+    with engine.begin() as connection:
+        if "workspace_id" not in form_cols:
+            connection.execute(text("ALTER TABLE forms ADD COLUMN workspace_id INTEGER REFERENCES workspaces(id)"))
+        if "theme" not in form_cols:
+            connection.execute(text("ALTER TABLE forms ADD COLUMN theme VARCHAR(50) DEFAULT 'Pearl white'"))
+
+    question_cols = {column["name"] for column in inspect(engine).get_columns("questions")}
+    with engine.begin() as connection:
+        if "properties" not in question_cols:
+            connection.execute(text("ALTER TABLE questions ADD COLUMN properties JSON"))
+        if "logic_rules" not in question_cols:
+            connection.execute(text("ALTER TABLE questions ADD COLUMN logic_rules JSON"))
+        if "choices" not in question_cols:
+            connection.execute(text("ALTER TABLE questions ADD COLUMN choices JSON"))
+        if "hint" not in question_cols:
+            connection.execute(text("ALTER TABLE questions ADD COLUMN hint TEXT DEFAULT ''"))
+
     with SessionLocal() as db:
         private_workspace = db.query(Workspace).filter_by(is_private=True).first()
         if private_workspace is None:
@@ -56,16 +90,35 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 # ---------- helpers ----------
 def prompt_out(p):
-    return {"id": p.id, "position": p.position, "kind": p.kind, "label": p.label, "hint": p.hint or "",
-            "mandatory": bool(p.mandatory), "choices": p.choices or [], "page": p.page or None}
+    return {
+        "id": p.id,
+        "position": p.position,
+        "kind": p.kind,
+        "label": p.label,
+        "hint": p.hint or "",
+        "mandatory": bool(p.mandatory),
+        "choices": p.choices or [],
+        "page": p.page or None,
+        "properties": getattr(p, "properties", None) or {},
+        "logic_rules": getattr(p, "logic_rules", None) or {},
+    }
 
 
 def inquiry_out(i, full=True):
-    out = {"id": i.id, "slug": i.slug, "title": i.title, "status": i.status, "accent": i.accent,
-           "workspace_id": i.workspace_id,
-           "closing_heading": i.closing_heading, "closing_text": i.closing_text,
-           "updated_at": i.updated_at.isoformat() if i.updated_at else None,
-           "created_at": i.created_at.isoformat() if i.created_at else None}
+    out = {
+        "id": i.id,
+        "slug": i.slug,
+        "title": i.title,
+        "status": i.status,
+        "accent": i.accent,
+        "theme": getattr(i, "theme", "Pearl white") or "Pearl white",
+        "settings": getattr(i, "settings", None) or {},
+        "workspace_id": i.workspace_id,
+        "closing_heading": i.closing_heading,
+        "closing_text": i.closing_text,
+        "updated_at": i.updated_at.isoformat() if i.updated_at else None,
+        "created_at": i.created_at.isoformat() if i.created_at else None,
+    }
     if full:
         out["prompts"] = [prompt_out(p) for p in i.prompts]
     return out
@@ -88,13 +141,20 @@ def find_workspace(db, workspace_id):
 def workspace_out(workspace, counts):
     return {"id": workspace.id, "name": workspace.name, "is_private": workspace.is_private,
             "order_index": getattr(workspace, "order_index", 0) or 0,
+            "last_visited_at": workspace.last_visited_at.isoformat() if getattr(workspace, "last_visited_at", None) else None,
             "form_count": counts.get(workspace.id, 0)}
 
 
 def apply_payload(inq, data):
     inq.updated_at = datetime.utcnow()
     inq.title = data.title.strip() or "Untitled form"
-    inq.accent, inq.closing_heading, inq.closing_text = data.accent, data.closing_heading, data.closing_text
+    inq.accent = data.accent
+    if hasattr(data, "theme") and data.theme:
+        inq.theme = data.theme
+    if hasattr(data, "settings") and data.settings is not None:
+        inq.settings = data.settings
+    inq.closing_heading = data.closing_heading
+    inq.closing_text = data.closing_text
     existing = {p.id: p for p in inq.prompts}
     kept = set()
     for pos, pd in enumerate(data.prompts):
@@ -112,6 +172,8 @@ def apply_payload(inq, data):
         p.choices = [c for c in pd.choices if c.strip()] if pd.kind in (
             "choice", "dropdown", "checkbox", "ranking", "matrix"
         ) else []
+        p.properties = pd.properties if hasattr(pd, "properties") and pd.properties else {}
+        p.logic_rules = pd.logic_rules if hasattr(pd, "logic_rules") and pd.logic_rules else {}
     for pid, p in existing.items():
         if pid not in kept:
             inq.prompts.remove(p)
@@ -128,8 +190,17 @@ def clone_prompts(src, dest):
         page = dict(p.page) if p.page else None
         if page:
             page["key"] = keys.setdefault(page["key"], new_slug())
-        dest.prompts.append(Prompt(position=p.position, kind=p.kind, label=p.label, hint=p.hint,
-                                   mandatory=p.mandatory, choices=list(p.choices or []), page=page))
+        dest.prompts.append(Prompt(
+            position=p.position,
+            kind=p.kind,
+            label=p.label,
+            hint=p.hint,
+            mandatory=p.mandatory,
+            choices=list(p.choices or []),
+            page=page,
+            properties=dict(getattr(p, "properties", None) or {}),
+            logic_rules=dict(getattr(p, "logic_rules", None) or {}),
+        ))
 
 
 # ---------- creator: inquiries ----------
@@ -218,9 +289,67 @@ def remove_workspace(workspace, db):
     moved_count = db.query(Inquiry).filter_by(workspace_id=workspace.id).update(
         {Inquiry.workspace_id: private_workspace.id}, synchronize_session=False
     )
+    pref = db.query(UserPreference).filter_by(user_key="default").first()
+    if pref and pref.active_workspace_id == workspace.id:
+        pref.active_workspace_id = private_workspace.id
     db.delete(workspace)
     db.commit()
     return {"ok": True, "moved_forms": moved_count}
+
+
+@app.get("/api/workspaces/active")
+def get_active_workspace(db: Session = Depends(get_db)):
+    pref = db.query(UserPreference).filter_by(user_key="default").first()
+    if pref and pref.active_workspace_id:
+        ws = db.get(Workspace, pref.active_workspace_id)
+        if ws:
+            return {"active_workspace_id": ws.id}
+    private = db.query(Workspace).filter_by(is_private=True).first()
+    first_ws = private or db.query(Workspace).first()
+    return {"active_workspace_id": first_ws.id if first_ws else None}
+
+
+@app.put("/api/workspaces/active")
+@app.post("/api/workspaces/active")
+def set_active_workspace(data: ActiveWorkspaceIn, db: Session = Depends(get_db)):
+    ws = find_workspace(db, data.workspace_id)
+    pref = db.query(UserPreference).filter_by(user_key="default").first()
+    if not pref:
+        pref = UserPreference(user_key="default", active_workspace_id=ws.id)
+        db.add(pref)
+    else:
+        pref.active_workspace_id = ws.id
+    ws.last_visited_at = datetime.utcnow()
+    db.commit()
+    return {"active_workspace_id": ws.id}
+
+
+@app.get("/api/user/preferences")
+def get_user_preferences(db: Session = Depends(get_db)):
+    pref = db.query(UserPreference).filter_by(user_key="default").first()
+    active_id = None
+    if pref and pref.active_workspace_id:
+        ws = db.get(Workspace, pref.active_workspace_id)
+        if ws:
+            active_id = ws.id
+    if active_id is None:
+        private = db.query(Workspace).filter_by(is_private=True).first()
+        active_id = private.id if private else None
+    return {"active_workspace_id": active_id}
+
+
+@app.patch("/api/user/preferences")
+def update_user_preferences(data: UserPreferencesIn, db: Session = Depends(get_db)):
+    pref = db.query(UserPreference).filter_by(user_key="default").first()
+    if not pref:
+        pref = UserPreference(user_key="default")
+        db.add(pref)
+    if data.active_workspace_id is not None:
+        ws = find_workspace(db, data.active_workspace_id)
+        pref.active_workspace_id = ws.id
+        ws.last_visited_at = datetime.utcnow()
+    db.commit()
+    return {"active_workspace_id": pref.active_workspace_id}
 
 
 @app.post("/api/workspaces/{workspace_id}/leave")
@@ -474,14 +603,15 @@ def submit_reply(slug: str, data: ReplyIn, db: Session = Depends(get_db)):
     inq = find_public(db, slug)
     errors = {}
     for p in inq.prompts:
-        msg = check_value(p, data.answers.get(str(p.id)))
+        raw_val = data.answers.get(str(p.id)) if str(p.id) in data.answers else data.answers.get(p.id)
+        msg = check_value(p, raw_val)
         if msg:
             errors[p.id] = msg
     if errors:
         raise HTTPException(422, {"errors": errors})
     rep = Reply()
     for p in inq.prompts:
-        v = data.answers.get(str(p.id))
+        v = data.answers.get(str(p.id)) if str(p.id) in data.answers else data.answers.get(p.id)
         if v is not None and str(v).strip() != "":
             rep.items.append(ReplyItem(prompt_id=p.id, value=str(v).strip()))
     inq.replies.append(rep)
@@ -521,7 +651,12 @@ def get_public_form(form_id: int, db: Session = Depends(get_db)):
     if form:
         questions = db.query(Question).filter(Question.form_id == form_id).order_by(Question.order).all()
         return {
-            "form": {"id": form.id, "title": form.title, "is_published": form.is_published},
+            "form": {
+                "id": form.id,
+                "title": form.title,
+                "is_published": form.is_published,
+                "theme": getattr(form, "theme", "Pearl white"),
+            },
             "questions": [
                 {
                     "id": q.id,
@@ -530,6 +665,10 @@ def get_public_form(form_id: int, db: Session = Depends(get_db)):
                     "question_type": q.question_type,
                     "is_required": q.is_required,
                     "order": q.order,
+                    "choices": getattr(q, "choices", None) or [],
+                    "hint": getattr(q, "hint", "") or "",
+                    "properties": getattr(q, "properties", None) or {},
+                    "logic_rules": getattr(q, "logic_rules", None) or {},
                 }
                 for q in questions
             ],
@@ -538,7 +677,15 @@ def get_public_form(form_id: int, db: Session = Depends(get_db)):
     inq = db.query(Inquiry).filter(Inquiry.id == form_id, Inquiry.status == "published").first()
     if inq:
         return {
-            "form": {"id": inq.id, "title": inq.title, "is_published": True},
+            "form": {
+                "id": inq.id,
+                "title": inq.title,
+                "is_published": True,
+                "theme": getattr(inq, "theme", inq.accent),
+                "accent": inq.accent,
+                "closing_heading": inq.closing_heading,
+                "closing_text": inq.closing_text,
+            },
             "questions": [
                 {
                     "id": p.id,
@@ -547,6 +694,11 @@ def get_public_form(form_id: int, db: Session = Depends(get_db)):
                     "question_type": p.kind,
                     "is_required": bool(p.mandatory),
                     "order": p.position,
+                    "choices": p.choices or [],
+                    "hint": p.hint or "",
+                    "page": p.page,
+                    "properties": getattr(p, "properties", None) or {},
+                    "logic_rules": getattr(p, "logic_rules", None) or {},
                 }
                 for p in inq.prompts
             ],
@@ -560,7 +712,12 @@ def get_form_by_id(form_id: int, db: Session = Depends(get_db)):
     if db_form:
         questions = db.query(Question).filter(Question.form_id == form_id).order_by(Question.order).all()
         return {
-            "form": {"id": db_form.id, "title": db_form.title, "is_published": db_form.is_published, "theme": db_form.theme},
+            "form": {
+                "id": db_form.id,
+                "title": db_form.title,
+                "is_published": db_form.is_published,
+                "theme": getattr(db_form, "theme", "Pearl white"),
+            },
             "questions": [
                 {
                     "id": q.id,
@@ -569,8 +726,10 @@ def get_form_by_id(form_id: int, db: Session = Depends(get_db)):
                     "question_type": q.question_type,
                     "is_required": q.is_required,
                     "order": q.order,
-                    "properties": q.properties,
-                    "logic_rules": q.logic_rules,
+                    "choices": getattr(q, "choices", None) or [],
+                    "hint": getattr(q, "hint", "") or "",
+                    "properties": getattr(q, "properties", None) or {},
+                    "logic_rules": getattr(q, "logic_rules", None) or {},
                 }
                 for q in questions
             ],
@@ -578,7 +737,15 @@ def get_form_by_id(form_id: int, db: Session = Depends(get_db)):
     inq = db.query(Inquiry).filter(Inquiry.id == form_id).first()
     if inq:
         return {
-            "form": {"id": inq.id, "title": inq.title, "is_published": inq.status == "published", "theme": inq.accent},
+            "form": {
+                "id": inq.id,
+                "title": inq.title,
+                "is_published": inq.status == "published",
+                "theme": getattr(inq, "theme", inq.accent),
+                "accent": inq.accent,
+                "closing_heading": inq.closing_heading,
+                "closing_text": inq.closing_text,
+            },
             "questions": [
                 {
                     "id": p.id,
@@ -587,6 +754,11 @@ def get_form_by_id(form_id: int, db: Session = Depends(get_db)):
                     "question_type": p.kind,
                     "is_required": bool(p.mandatory),
                     "order": p.position,
+                    "choices": p.choices or [],
+                    "hint": p.hint or "",
+                    "page": p.page,
+                    "properties": getattr(p, "properties", None) or {},
+                    "logic_rules": getattr(p, "logic_rules", None) or {},
                 }
                 for p in inq.prompts
             ],
@@ -605,9 +777,13 @@ def update_form_questions(form_id: int, questions_data: list[QuestionCreate], db
         db_q = Question(
             form_id=form_id,
             title=qd.title,
+            hint=qd.hint or "",
             question_type=qd.question_type,
             is_required=qd.is_required,
             order=qd.order if qd.order is not None else idx,
+            choices=qd.choices or [],
+            properties=qd.properties or {},
+            logic_rules=qd.logic_rules or {},
         )
         db.add(db_q)
     db.commit()

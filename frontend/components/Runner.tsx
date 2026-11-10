@@ -301,7 +301,7 @@ export default function Runner({ inquiry, onSubmit, startAt = 0, preview, isMobi
               <h2 className="q text-cascade-1 m-0 mb-1 flex items-start gap-2.5 text-[clamp(22px,3.2vw,28px)] font-normal leading-[1.3] text-[#262627] dark:text-[#f2eff3]">
                 <span className="tf-badge-num inline-flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-[4px] bg-[#262627] px-1.5 text-[12px] font-bold leading-none text-white shadow-sm dark:bg-[#39343d] dark:text-[#f2eff3]">{i + 1}</span>
                 <span className="flex-1">
-                  {page ? page.title || "Page" : p?.label || (preview ? "Your question here. Recall information with @" : "...")}
+                  {page ? page.title || "Page" : p?.label || "..."}
                   {p?.mandatory && <span className="req text-[#e04f4f]"> *</span>}
                 </span>
               </h2>
@@ -340,17 +340,24 @@ export default function Runner({ inquiry, onSubmit, startAt = 0, preview, isMobi
             </div>
           </div>)}
         {n > 0 && i >= n && (
-          <div className="slide from-above w-full">
-            <h2 className="q text-cascade-1 m-0 mb-2 text-[clamp(22px,3.2vw,30px)] font-normal leading-[1.25] text-[#262627] dark:text-[#f2eff3]">{inquiry.closing_heading}</h2>
-            <p className="hint text-cascade-2 mb-[22px] mt-0 text-lg italic text-[#737373] dark:text-[#b4acb9]">{inquiry.closing_text}</p>
+          <div className="slide from-above flex w-full flex-col items-center justify-center py-8 text-center">
+            <div className="mb-5 grid size-16 place-items-center rounded-full border-2 border-[#262627] text-2xl font-bold dark:border-white">
+              ✓
+            </div>
+            <h2 className="q text-cascade-1 m-0 mb-2 text-[clamp(22px,3.2vw,30px)] font-normal leading-[1.25] text-[#262627] dark:text-[#f2eff3]">{inquiry.closing_heading || "Thanks for completing this form"}</h2>
+            <p className="hint text-cascade-2 mb-[22px] mt-0 text-base text-[#737373] dark:text-[#b4acb9]">{inquiry.closing_text || "Now create your own — it's free, easy & beautiful"}</p>
             {preview && <button className="rounded-md border-0 bg-[#262627] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#181819] active:scale-95 dark:bg-[#39343d] dark:text-white dark:hover:bg-[#48434f]" onClick={() => { setAns({}); setDir(-1); setI(0); }}>Restart preview</button>}
           </div>)}
       </div>
       {n > 0 && i < n && !isMobileView && (
         <div className="nav absolute bottom-5 right-5 flex items-center gap-2">
           <div className="flex overflow-hidden rounded-md shadow-sm">
-            <button className="flex h-8 w-8 items-center justify-center border-0 bg-[#d4d4d8] text-sm text-[#444] transition-colors hover:bg-[#c4c4c8] disabled:opacity-40 disabled:hover:bg-[#d4d4d8] dark:bg-[#38383e] dark:text-[#d5cfd8] dark:hover:bg-[#484852]" disabled={i === 0} onClick={back} aria-label="Previous question">▲</button>
-            <button className="flex h-8 w-8 items-center justify-center border-0 border-l border-white/30 bg-[#d4d4d8] text-sm text-[#444] transition-colors hover:bg-[#c4c4c8] dark:bg-[#38383e] dark:text-[#d5cfd8] dark:hover:bg-[#484852]" onClick={() => advance()} aria-label="Next question">▼</button>
+            <button className="flex h-8 w-8 items-center justify-center border-0 bg-[#d4d4d8] text-[#444] transition-colors hover:bg-[#c4c4c8] disabled:opacity-40 disabled:hover:bg-[#d4d4d8] dark:bg-[#38383e] dark:text-[#d5cfd8] dark:hover:bg-[#484852]" disabled={i === 0} onClick={back} aria-label="Previous question">
+              <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+            </button>
+            <button className="flex h-8 w-8 items-center justify-center border-0 border-l border-white/40 bg-[#d4d4d8] text-[#444] transition-colors hover:bg-[#c4c4c8] dark:bg-[#38383e] dark:text-[#d5cfd8] dark:hover:bg-[#484852]" onClick={() => advance()} aria-label="Next question">
+              <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
           </div>
           <div className="flex h-8 items-center gap-1.5 rounded-md bg-[#262627] px-3 text-xs font-medium text-white shadow-sm dark:bg-[#302c34] dark:text-[#f2eff3]">
             <span className="font-semibold text-white/90">Powered by</span>
