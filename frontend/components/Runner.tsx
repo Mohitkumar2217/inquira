@@ -289,40 +289,40 @@ export default function Runner({ inquiry, onSubmit, startAt = 0, preview, isMobi
   };
 
   return (
-    <div className="runner relative h-full w-full overflow-hidden bg-white text-[#262627] dark:bg-[#202024] dark:text-[#f4f4f5]" style={{ "--accent": inquiry.accent } as AccentStyle}>
-      <div className="progress absolute inset-x-0 top-0 z-[2] h-1 bg-[#ebebeb] dark:bg-[#39393e]">
+    <div className={`runner relative h-full w-full overflow-y-auto overflow-x-hidden bg-white text-[#262627] dark:bg-[#202024] dark:text-[#f4f4f5] ${isMobileView ? "mobile-runner" : ""}`} style={{ "--accent": inquiry.accent } as AccentStyle}>
+      <div className="progress sticky top-0 z-[2] h-1 w-full bg-[#ebebeb] dark:bg-[#39393e]">
         <div className="h-full bg-[#262627] transition-[width] duration-[400ms] ease-in-out dark:bg-[#8c8294]" style={{ width: `${n ? (Math.min(i, n) / n) * 100 : 0}%` }} />
       </div>
-      <div className={`stage flex h-full ${isMobileView ? "flex-col justify-between px-6 py-8" : "items-center justify-center px-6 py-10 max-[600px]:px-5 max-[600px]:py-7"}`}>
+      <div className={`stage flex min-h-full ${isMobileView ? "flex-col justify-between px-5 pt-7 pb-6" : "items-center justify-center px-6 py-10 max-[600px]:px-5 max-[600px]:py-7"}`}>
         {n === 0 && <div className="slide w-full"><h2 className="q m-0 mb-2 text-[clamp(22px,3.2vw,30px)] font-normal leading-tight text-[var(--tf-text)]">Add your first question to see it here</h2></div>}
         {n > 0 && step && (
           <div key={i} className={`slide from-above w-full ${isMobileView ? "flex flex-col flex-1 justify-between" : ""}`}>
-            <div className={isMobileView ? "my-auto" : ""}>
-              <h2 className="q text-cascade-1 m-0 mb-1 flex items-start gap-2.5 text-[clamp(22px,3.2vw,28px)] font-normal leading-[1.3] text-[#262627] dark:text-[#f2eff3]">
+            <div className={isMobileView ? "my-auto w-full min-w-0" : "min-w-0"}>
+              <h2 className={`q text-cascade-1 m-0 mb-1 flex items-start gap-2.5 font-normal leading-[1.3] text-[#262627] dark:text-[#f2eff3] ${isMobileView ? "text-xl" : "text-[clamp(22px,3.2vw,28px)]"}`}>
                 <span className="tf-badge-num inline-flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-[4px] bg-[#262627] px-1.5 text-[12px] font-bold leading-none text-white shadow-sm dark:bg-[#39343d] dark:text-[#f2eff3]">{i + 1}</span>
-                <span className="flex-1">
+                <span className="min-w-0 flex-1 break-words">
                   {page ? page.title || "Page" : p?.label || "..."}
                   {p?.mandatory && <span className="req text-[#e04f4f]"> *</span>}
                 </span>
               </h2>
               {((page ? page.hint : p?.hint) || preview) && (
-                <p className="hint text-cascade-2 mb-5 mt-1 text-[15px] italic text-[#737373] dark:text-[#a1a1aa]">
+                <p className={`hint text-cascade-2 mt-1 italic text-[#737373] dark:text-[#a1a1aa] ${isMobileView ? "mb-4 text-sm" : "mb-5 text-[15px]"}`}>
                   {(page ? page.hint : p?.hint) || (preview ? "Description (optional)" : "")}
                 </p>
               )}
               {page ? (
-                <div className="page-fields mt-5 flex flex-col gap-[22px]">{step.map((q, k) => (
-                  <div className="page-field text-cascade-3" key={q.id}>
-                    <label className="block text-lg font-normal text-[#262627] dark:text-[#f2eff3]">{q.label || "Untitled"}{q.mandatory && <span className="req text-[#e04f4f]"> *</span>}</label>
+                <div className={`page-fields flex flex-col ${isMobileView ? "mt-3.5 gap-4" : "mt-5 gap-[22px]"}`}>{step.map((q, k) => (
+                  <div className="page-field min-w-0 text-cascade-3" key={q.id}>
+                    <label className={`block font-normal text-[#262627] dark:text-[#f2eff3] ${isMobileView ? "text-[15px]" : "text-lg"}`}>{q.label || "Untitled"}{q.mandatory && <span className="req text-[#e04f4f]"> *</span>}</label>
                     {q.hint && <div className="mt-0.5 text-sm italic text-[#737373] dark:text-[#a1a1aa]">{q.hint}</div>}
                     {field(q, k === 0)}
                     {errs[q.id] && <div className={ERR}>⚠ {errs[q.id]}</div>}
                   </div>))}</div>
-              ) : p && (<div className="text-cascade-3">{field(p, true)}{errs[p.id] && <div className={ERR}>⚠ {errs[p.id]}</div>}</div>)}
+              ) : p && (<div className="min-w-0 text-cascade-3">{field(p, true)}{errs[p.id] && <div className={ERR}>⚠ {errs[p.id]}</div>}</div>)}
               {gerr && <div className={ERR}>⚠ {gerr}</div>}
             </div>
 
-            <div className={`actions text-cascade-4 ${isMobileView ? "mt-auto pt-6 w-full" : "mt-6 flex items-center gap-3.5"}`}>
+            <div className={`actions text-cascade-4 ${isMobileView ? "mt-6 pt-2 pb-1 w-full shrink-0" : "mt-6 flex items-center gap-3.5"}`}>
               <button
                 className={`rounded-md border-0 bg-[#262627] font-semibold text-white shadow-sm transition hover:bg-[#181819] active:scale-[0.99] disabled:cursor-default disabled:opacity-50 dark:bg-[#39343d] dark:text-white dark:hover:bg-[#48434f] ${
                   isMobileView ? "w-full py-3 text-sm" : "px-5 py-2.5 text-sm active:scale-95"

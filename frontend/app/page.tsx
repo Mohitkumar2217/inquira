@@ -306,9 +306,9 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <div className="mr-0.5 h-10 w-[14px] rounded-[7px] bg-[var(--tf-purple)]" /><div className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--tf-purple)] text-lg text-white">{USER.workspace[0]}</div>
           <div className="tf-org-wrap relative">
-            <button className="tf-ws-name rounded-md border-0 bg-transparent px-1 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#303035]" onClick={() => setOrg(!org)}>
-              {USER.workspace}
-              <svg className={"tf-chevron" + (org ? " up" : "")} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <button className="tf-ws-name inline-flex items-center whitespace-nowrap rounded-md border-0 bg-transparent px-1.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#303035]" onClick={() => setOrg(!org)}>
+              <span className="max-w-[150px] truncate sm:max-w-none">{USER.workspace}</span>
+              <svg className={"tf-chevron inline-block shrink-0" + (org ? " up" : "")} viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="m4 6 4 4 4-4" />
               </svg>
             </button>

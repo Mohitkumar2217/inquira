@@ -531,7 +531,8 @@ h1 {
   height: 100%;
   width: 100%;
   color: #262627;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: #fff
 }
 
@@ -3065,9 +3066,31 @@ html.dark .builder .soon {
   background: #fff
 }
 
+.builder .runner.mobile-runner .stage {
+  padding: 28px 18px 20px;
+}
+
+.builder .runner.mobile-runner .slide {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.runner.mobile-runner .line-input {
+  font-size: 16px;
+  margin-top: 6px;
+}
+
 html.dark .builder .slide {
   border-color: #38383e;
   background: #242428
+}
+
+html.dark .builder .runner.mobile-runner .slide {
+  border: 0;
+  background: transparent;
 }
 
 @media(max-width:900px) {
@@ -4454,6 +4477,8 @@ html.dark .theme-toggle-header:hover {
 }
 
 .tf-chevron {
+  display: inline-block;
+  flex-shrink: 0;
   width: 14px;
   height: 14px;
   margin-left: 6px;
