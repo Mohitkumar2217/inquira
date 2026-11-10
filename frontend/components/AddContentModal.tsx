@@ -4,26 +4,65 @@ import { useToast } from "@/components/Toasts";
 import { nextTempId, toPrompts } from "@/lib/guess";
 import { Kind, PromptDTO } from "@/lib/types";
 
-type Item = { name: string; icon: string; kind?: Kind; action?: "contact"; pro?: boolean; unavailable?: string };
+type Item = { name: string; icon: string; kind?: Kind; action?: "contact" | "welcome" | "ending"; pro?: boolean; unavailable?: string };
 const SECTIONS: { title: string; tone: string; span?: number; items: Item[] }[] = [
-  { title: "Contact info", tone: "pink", items: [
-    { name: "Contact Info", icon: "◉", action: "contact" }, { name: "Email", icon: "✉", kind: "email" }, { name: "Phone Number", icon: "☎", kind: "phone" },
-    { name: "Address", icon: "⌖", kind: "address" }, { name: "Website", icon: "↗", kind: "url" }] },
-  { title: "Choice", tone: "purple", items: [
-    { name: "Multiple Choice", icon: "☰", kind: "choice" }, { name: "Dropdown", icon: "⌄", kind: "dropdown" },
-    { name: "Picture Choice", icon: "▧", unavailable: "Image choices are not supported yet" }, { name: "Yes/No", icon: "⊘", kind: "yes_no" },
-    { name: "Legal", icon: "⚖", kind: "legal" }, { name: "Checkbox", icon: "☑", kind: "checkbox" }] },
-  { title: "Rating & ranking", tone: "green", items: [
-    { name: "Net Promoter Score®", icon: "◔", kind: "nps" }, { name: "Opinion Scale", icon: "▂▄", kind: "opinion_scale" }, { name: "Rating", icon: "☆", kind: "rating" },
-    { name: "Ranking", icon: "①", kind: "ranking" }, { name: "Matrix", icon: "⣿", kind: "matrix" }] },
-  { title: "Text & Video", tone: "blue", items: [
-    { name: "Long Text", icon: "≡", kind: "long_text" }, { name: "Short Text", icon: "▭", kind: "short_text" },
-    { name: "Video and Audio", icon: "▶", pro: true, unavailable: "Video and audio need media processing" }, { name: "Clarify with AI", icon: "✎", pro: true, unavailable: "AI features are not configured" }, { name: "FAQ with AI", icon: "?", pro: true, unavailable: "AI features are not configured" }] },
-  { title: "Other", tone: "yellow", span: 2, items: [
-    { name: "Number", icon: "#", kind: "number" }, { name: "Date", icon: "▦", kind: "date" }, { name: "Signature", icon: "✍", pro: true, unavailable: "Signature capture is not supported yet" },
-    { name: "Payment", icon: "▭", pro: true, unavailable: "Payments require a payment provider" }, { name: "File Upload", icon: "⇪", pro: true, unavailable: "Uploads require file storage" }, { name: "Scheduler", icon: "▤", unavailable: "Scheduling needs a calendar integration" },
-    { name: "Welcome Screen", icon: "◫", unavailable: "Page elements are not supported yet" }, { name: "Partial Submit Point", icon: "▽", pro: true, unavailable: "Partial submissions are not supported yet" }, { name: "Statement", icon: "❝", unavailable: "Page elements are not supported yet" },
-    { name: "Question Group", icon: "▥", unavailable: "Page elements are not supported yet" }, { name: "End Screen", icon: "◧", unavailable: "Page elements are not supported yet" }, { name: "Redirect to URL", icon: "↪", pro: true, unavailable: "Redirect actions are not supported yet" }] },
+  {
+    title: "Recommended",
+    tone: "blue",
+    items: [
+      { name: "Video and Audio", icon: "▶", kind: "short_text" },
+      { name: "Multiple Choice", icon: "☰", kind: "choice" },
+      { name: "Short Text", icon: "▭", kind: "short_text" },
+    ],
+  },
+  {
+    title: "Contact Info",
+    tone: "pink",
+    items: [
+      { name: "Email", icon: "✉", kind: "email" },
+      { name: "Phone Number", icon: "☎", kind: "phone" },
+      { name: "Address", icon: "⌖", kind: "address" },
+      { name: "Website", icon: "↗", kind: "url" },
+    ],
+  },
+  {
+    title: "Text & Video",
+    tone: "blue",
+    items: [
+      { name: "Long Text", icon: "≡", kind: "long_text" },
+      { name: "Statement", icon: "❝", kind: "short_text" },
+    ],
+  },
+  {
+    title: "Choice",
+    tone: "purple",
+    items: [
+      { name: "Dropdown", icon: "⌄", kind: "dropdown" },
+      { name: "Picture Choice", icon: "▧", kind: "choice" },
+      { name: "Yes/No", icon: "✓", kind: "yes_no" },
+      { name: "Legal", icon: "⚖", kind: "legal" },
+    ],
+  },
+  {
+    title: "Rating & Ranking",
+    tone: "green",
+    items: [
+      { name: "Opinion Scale", icon: "▂▄", kind: "opinion_scale" },
+      { name: "Rating", icon: "☆", kind: "rating" },
+      { name: "Ranking", icon: "①", kind: "ranking" },
+    ],
+  },
+  {
+    title: "Other",
+    tone: "yellow",
+    span: 2,
+    items: [
+      { name: "Welcome Screen", icon: "◫", action: "welcome" },
+      { name: "Endings", icon: "◧", action: "ending" },
+      { name: "File Upload", icon: "⇪", kind: "short_text", pro: true },
+      { name: "Scheduler", icon: "▤", kind: "date" },
+    ],
+  },
 ];
 
 type PromptTemplate = Pick<PromptDTO, "kind" | "label"> &
@@ -94,7 +133,12 @@ export default function AddContentModal({ onClose, onAdd, onAddContact, onImport
                     <div className={s.span ? "am-two grid grid-cols-2 content-start gap-x-5 max-[500px]:grid-cols-1" : ""}>
                       {items.map((i) => (
                                     <button key={i.name} className={`am-item flex w-full items-center gap-3 rounded-lg border-0 bg-transparent px-1.5 py-2 text-left text-[17px] text-[#555] hover:bg-[#f3f3f3] hover:text-[#111] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent dark:text-[#e4e4e7] dark:hover:bg-[#303035] dark:hover:text-white ${i.kind ? "" : "off opacity-[.78]"}`}
-                                      disabled={!i.kind && !i.action} title={i.unavailable} onClick={() => (i.action === "contact" ? onAddContact() : i.kind && onAdd(i.kind))}>
+                                      disabled={!i.kind && !i.action} title={i.unavailable} onClick={() => {
+                                        if (i.action === "contact") onAddContact();
+                                        else if (i.action === "welcome") { toast("Welcome Screen element configured"); onClose(); }
+                                        else if (i.action === "ending") { toast("Endings configured"); onClose(); }
+                                        else if (i.kind) onAdd(i.kind);
+                                      }}>
                           <i className={`am-ico grid size-[30px] shrink-0 place-items-center rounded-[7px] text-sm not-italic text-[#333] ${i.name.match(/Welcome|Partial|Statement|Group|End|Redirect/) ? "gray bg-[#ddd]" : s.tone === "pink" ? "pink bg-[#f8c8d4]" : s.tone === "purple" ? "purple bg-[#dcd4f7]" : s.tone === "green" ? "green bg-[#c4e2bb]" : s.tone === "blue" ? "blue bg-[#c3dcf7]" : "yellow bg-[#fbe0a0"} dark:text-[#e4e4e7]`}>
                             {i.name === "Dropdown" ? <svg className="am-dropdown-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" /></svg> : i.icon}
                           </i>

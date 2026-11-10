@@ -12,9 +12,9 @@ from sqlalchemy import func, inspect, text
 from sqlalchemy.orm import Session
 
 from .database import Base, SessionLocal, engine, get_db
-from .models import Inquiry, Prompt, Reply, ReplyItem, Workspace
+from .models import Inquiry, Prompt, Reply, ReplyItem, Workspace, Form, Question, FormResponse, Answer
 from .rules import check_value, valid_kind
-from .schemas import InquiryIn, ReplyIn, TitleIn, WorkspaceIn, WorkspaceMoveIn
+from .schemas import InquiryIn, ReplyIn, TitleIn, WorkspaceIn, WorkspaceMoveIn, FormCreate, QuestionCreate, SubmitResponse, FormResponseOut
 from .seed import seed_if_empty
 
 
@@ -30,6 +30,9 @@ async def lifespan(_):
             connection.execute(text(
                 "ALTER TABLE inquiries ADD COLUMN workspace_id INTEGER REFERENCES workspaces(id)"
             ))
+    if "order_index" not in {column["name"] for column in inspect(engine).get_columns("workspaces")}:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE workspaces ADD COLUMN order_index INTEGER DEFAULT 0"))
     with SessionLocal() as db:
         private_workspace = db.query(Workspace).filter_by(is_private=True).first()
         if private_workspace is None:
@@ -84,6 +87,7 @@ def find_workspace(db, workspace_id):
 
 def workspace_out(workspace, counts):
     return {"id": workspace.id, "name": workspace.name, "is_private": workspace.is_private,
+            "order_index": getattr(workspace, "order_index", 0) or 0,
             "form_count": counts.get(workspace.id, 0)}
 
 
@@ -134,7 +138,7 @@ def list_workspaces(db: Session = Depends(get_db)):
     counts = dict(db.query(Inquiry.workspace_id, func.count(Inquiry.id))
                   .group_by(Inquiry.workspace_id).all())
     return [workspace_out(w, counts) for w in
-            db.query(Workspace).order_by(Workspace.is_private.desc(), Workspace.name).all()]
+            db.query(Workspace).order_by(Workspace.is_private.desc(), Workspace.order_index.asc(), Workspace.id.asc()).all()]
 
 
 @app.post("/api/workspaces", status_code=201)
@@ -144,11 +148,48 @@ def create_workspace(data: WorkspaceIn, db: Session = Depends(get_db)):
         raise HTTPException(422, "Workspace name cannot be empty")
     if db.query(Workspace).filter(func.lower(Workspace.name) == name.lower()).first():
         raise HTTPException(409, "A workspace with this name already exists")
-    workspace = Workspace(name=name)
+    max_order = db.query(func.max(Workspace.order_index)).scalar() or 0
+    workspace = Workspace(name=name, order_index=max_order + 1)
     db.add(workspace)
     db.commit()
     db.refresh(workspace)
     return workspace_out(workspace, {})
+
+
+@app.post("/api/workspaces/{workspace_id}/move-up")
+def move_workspace_up(workspace_id: int, db: Session = Depends(get_db)):
+    ws = find_workspace(db, workspace_id)
+    workspaces = db.query(Workspace).filter_by(is_private=False).order_by(Workspace.order_index.asc(), Workspace.id.asc()).all()
+    idx = next((i for i, w in enumerate(workspaces) if w.id == ws.id), None)
+    if idx is not None and idx > 0:
+        prev_ws = workspaces[idx - 1]
+        prev_order = prev_ws.order_index
+        curr_order = ws.order_index
+        if prev_order == curr_order:
+            prev_ws.order_index = idx
+            ws.order_index = idx - 1
+        else:
+            ws.order_index, prev_ws.order_index = prev_order, curr_order
+        db.commit()
+    return {"ok": True}
+
+
+@app.post("/api/workspaces/{workspace_id}/move-down")
+def move_workspace_down(workspace_id: int, db: Session = Depends(get_db)):
+    ws = find_workspace(db, workspace_id)
+    workspaces = db.query(Workspace).filter_by(is_private=False).order_by(Workspace.order_index.asc(), Workspace.id.asc()).all()
+    idx = next((i for i, w in enumerate(workspaces) if w.id == ws.id), None)
+    if idx is not None and idx < len(workspaces) - 1:
+        next_ws = workspaces[idx + 1]
+        next_order = next_ws.order_index
+        curr_order = ws.order_index
+        if next_order == curr_order:
+            next_ws.order_index = idx
+            ws.order_index = idx + 1
+        else:
+            ws.order_index, next_ws.order_index = next_order, curr_order
+        db.commit()
+    return {"ok": True}
 
 
 @app.patch("/api/workspaces/{workspace_id}")
@@ -370,6 +411,51 @@ def export_csv(iid: int, db: Session = Depends(get_db)):
                     headers={"Content-Disposition": f'attachment; filename="{inq.slug}-replies.csv"'})
 
 
+@app.post("/api/inquiries/{iid}/generate-test-response", status_code=201)
+def generate_test_response(iid: int, db: Session = Depends(get_db)):
+    inq = find(db, iid)
+    if not inq.prompts:
+        raise HTTPException(422, "Cannot generate test response for empty form")
+
+    count = len(inq.replies) + 1
+    rep = Reply()
+    for idx, p in enumerate(inq.prompts):
+        val = ""
+        if p.kind == "email":
+            val = f"respondent{count}@example.com"
+        elif p.kind == "phone":
+            val = f"+1 (555) 01{count:02d}-4321"
+        elif p.kind == "short_text":
+            val = f"Sample answer #{count}"
+        elif p.kind == "long_text":
+            val = f"This is test feedback #{count} generated to verify the responses table and completion analytics."
+        elif p.kind == "number":
+            val = str(10 * count)
+        elif p.kind in ("choice", "dropdown"):
+            val = p.choices[(count - 1) % len(p.choices)] if p.choices else "Option 1"
+        elif p.kind == "checkbox":
+            val = json.dumps([p.choices[0]] if p.choices else ["Option 1"])
+        elif p.kind == "yes_no":
+            val = "yes" if count % 2 == 1 else "no"
+        elif p.kind == "rating":
+            val = str(min(5, (count % 5) + 1))
+        elif p.kind == "opinion_scale":
+            val = str(min(10, (count % 10) + 1))
+        elif p.kind == "nps":
+            val = str(8 + (count % 3))
+        elif p.kind == "address":
+            val = f"{100 + count} Main St, Suite {count}, San Francisco, CA 94105, USA"
+        elif p.kind == "url":
+            val = f"https://example{count}.com"
+        else:
+            val = f"Answer #{count}"
+        rep.items.append(ReplyItem(prompt_id=p.id, value=val))
+
+    inq.replies.append(rep)
+    db.commit()
+    return {"ok": True, "reply_id": rep.id, "total_replies": len(inq.replies)}
+
+
 # ---------- public respondent ----------
 def find_public(db, slug):
     inq = db.query(Inquiry).filter_by(slug=slug, status="published").first()
@@ -401,3 +487,159 @@ def submit_reply(slug: str, data: ReplyIn, db: Session = Depends(get_db)):
     inq.replies.append(rep)
     db.commit()
     return {"ok": True, "reply_id": rep.id}
+
+
+# ---------- relational forms API (assignment specification) ----------
+@app.post("/forms/", response_model=FormResponseOut, status_code=201)
+def create_form(form: FormCreate, db: Session = Depends(get_db)):
+    db_form = Form(title=form.title, is_published=form.is_published)
+    db.add(db_form)
+    db.commit()
+    db.refresh(db_form)
+    return db_form
+
+
+@app.get("/forms/")
+def list_forms(db: Session = Depends(get_db)):
+    rows = db.query(Form).order_by(Form.updated_at.desc()).all()
+    return [
+        {
+            "id": f.id,
+            "title": f.title,
+            "is_published": f.is_published,
+            "question_count": len(f.questions),
+            "response_count": len(f.responses),
+        }
+        for f in rows
+    ]
+
+
+@app.get("/forms/{form_id}/public")
+def get_public_form(form_id: int, db: Session = Depends(get_db)):
+    # Fetch published form and its questions ordered by 'order'
+    form = db.query(Form).filter(Form.id == form_id, Form.is_published == True).first()
+    if form:
+        questions = db.query(Question).filter(Question.form_id == form_id).order_by(Question.order).all()
+        return {
+            "form": {"id": form.id, "title": form.title, "is_published": form.is_published},
+            "questions": [
+                {
+                    "id": q.id,
+                    "form_id": q.form_id,
+                    "title": q.title,
+                    "question_type": q.question_type,
+                    "is_required": q.is_required,
+                    "order": q.order,
+                }
+                for q in questions
+            ],
+        }
+    # Check Inquiry fallback if created via creator builder
+    inq = db.query(Inquiry).filter(Inquiry.id == form_id, Inquiry.status == "published").first()
+    if inq:
+        return {
+            "form": {"id": inq.id, "title": inq.title, "is_published": True},
+            "questions": [
+                {
+                    "id": p.id,
+                    "form_id": inq.id,
+                    "title": p.label or p.kind,
+                    "question_type": p.kind,
+                    "is_required": bool(p.mandatory),
+                    "order": p.position,
+                }
+                for p in inq.prompts
+            ],
+        }
+    raise HTTPException(status_code=404, detail="Form not found or not published")
+
+
+@app.get("/forms/{form_id}")
+def get_form_by_id(form_id: int, db: Session = Depends(get_db)):
+    db_form = db.query(Form).filter(Form.id == form_id).first()
+    if db_form:
+        questions = db.query(Question).filter(Question.form_id == form_id).order_by(Question.order).all()
+        return {
+            "form": {"id": db_form.id, "title": db_form.title, "is_published": db_form.is_published, "theme": db_form.theme},
+            "questions": [
+                {
+                    "id": q.id,
+                    "form_id": q.form_id,
+                    "title": q.title,
+                    "question_type": q.question_type,
+                    "is_required": q.is_required,
+                    "order": q.order,
+                    "properties": q.properties,
+                    "logic_rules": q.logic_rules,
+                }
+                for q in questions
+            ],
+        }
+    inq = db.query(Inquiry).filter(Inquiry.id == form_id).first()
+    if inq:
+        return {
+            "form": {"id": inq.id, "title": inq.title, "is_published": inq.status == "published", "theme": inq.accent},
+            "questions": [
+                {
+                    "id": p.id,
+                    "form_id": inq.id,
+                    "title": p.label or p.kind,
+                    "question_type": p.kind,
+                    "is_required": bool(p.mandatory),
+                    "order": p.position,
+                }
+                for p in inq.prompts
+            ],
+        }
+    raise HTTPException(status_code=404, detail="Form not found")
+
+
+@app.put("/forms/{form_id}/questions")
+def update_form_questions(form_id: int, questions_data: list[QuestionCreate], db: Session = Depends(get_db)):
+    db_form = db.query(Form).filter(Form.id == form_id).first()
+    if not db_form:
+        raise HTTPException(status_code=404, detail="Form not found")
+    # replace questions
+    db.query(Question).filter(Question.form_id == form_id).delete()
+    for idx, qd in enumerate(questions_data):
+        db_q = Question(
+            form_id=form_id,
+            title=qd.title,
+            question_type=qd.question_type,
+            is_required=qd.is_required,
+            order=qd.order if qd.order is not None else idx,
+        )
+        db.add(db_q)
+    db.commit()
+    db.refresh(db_form)
+    return {"message": "Questions updated successfully"}
+
+
+@app.post("/forms/{form_id}/submit")
+@app.post("/forms/{form_id}/responses")
+def submit_response(form_id: int, response_data: SubmitResponse, db: Session = Depends(get_db)):
+    db_form = db.query(Form).filter(Form.id == form_id).first()
+    inq = db.query(Inquiry).filter(Inquiry.id == form_id).first()
+    if not db_form and not inq:
+        raise HTTPException(status_code=404, detail="Form not found")
+
+    if db_form:
+        db_response = FormResponse(form_id=form_id)
+        db.add(db_response)
+        db.commit()
+        db.refresh(db_response)
+
+        for ans in response_data.answers:
+            db_answer = Answer(response_id=db_response.id, question_id=ans.question_id, value=ans.value)
+            db.add(db_answer)
+        db.commit()
+
+    if inq:
+        rep = Reply(inquiry_id=inq.id)
+        for ans in response_data.answers:
+            rep.items.append(ReplyItem(prompt_id=ans.question_id, value=ans.value))
+        db.add(rep)
+        db.commit()
+
+    return {"message": "Response submitted successfully"}
+

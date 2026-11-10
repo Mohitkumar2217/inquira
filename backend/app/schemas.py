@@ -47,3 +47,34 @@ class WorkspaceMoveIn(BaseModel):
 
 class ReplyIn(BaseModel):
     answers: dict
+
+
+class FormCreate(BaseModel):
+    title: str = "Untitled form"
+    is_published: bool = False
+
+
+class QuestionCreate(BaseModel):
+    title: str = ""
+    question_type: str = "short_text"
+    is_required: bool = False
+    order: int = 0
+
+
+class AnswerSubmit(BaseModel):
+    question_id: int
+    value: str
+
+
+class SubmitResponse(BaseModel):
+    answers: List[AnswerSubmit]
+
+
+class FormResponseOut(BaseModel):
+    id: int
+    title: str
+    is_published: bool
+
+    class Config:
+        from_attributes = True
+

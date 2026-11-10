@@ -90,9 +90,10 @@ interface Props {
   onSubmit: (answers: Record<number, string>) => Promise<void>;
   startAt?: number;
   preview?: boolean;
+  isMobileView?: boolean;
 }
 
-export default function Runner({ inquiry, onSubmit, startAt = 0, preview }: Props) {
+export default function Runner({ inquiry, onSubmit, startAt = 0, preview, isMobileView }: Props) {
   // A "step" is one screen: a single question, or all fields of one multi-field page.
   const steps = useMemo(() => buildSteps(inquiry.prompts), [inquiry.prompts]);
   const n = steps.length;
@@ -289,39 +290,72 @@ export default function Runner({ inquiry, onSubmit, startAt = 0, preview }: Prop
 
   return (
     <div className="runner relative h-full w-full overflow-hidden bg-white text-[#262627] dark:bg-[#202024] dark:text-[#f4f4f5]" style={{ "--accent": inquiry.accent } as AccentStyle}>
-      <div className="progress absolute inset-x-0 top-0 z-[2] h-[5px] bg-[#eee] dark:bg-[#39393e]"><div className="h-full bg-[var(--accent)] transition-[width] duration-[400ms] ease-in-out" style={{ width: `${n ? (Math.min(i, n) / n) * 100 : 0}%` }} /></div>
-      <div className="stage flex h-full items-center justify-center px-6 py-10 max-[600px]:px-5 max-[600px]:py-7">
+      <div className="progress absolute inset-x-0 top-0 z-[2] h-1 bg-[#ebebeb] dark:bg-[#39393e]">
+        <div className="h-full bg-[#262627] transition-[width] duration-[400ms] ease-in-out dark:bg-[#8c8294]" style={{ width: `${n ? (Math.min(i, n) / n) * 100 : 0}%` }} />
+      </div>
+      <div className={`stage flex h-full ${isMobileView ? "flex-col justify-between px-6 py-8" : "items-center justify-center px-6 py-10 max-[600px]:px-5 max-[600px]:py-7"}`}>
         {n === 0 && <div className="slide w-full"><h2 className="q m-0 mb-2 text-[clamp(22px,3.2vw,30px)] font-normal leading-tight text-[var(--tf-text)]">Add your first question to see it here</h2></div>}
         {n > 0 && step && (
-          <div key={i} className={`slide w-full ${dir > 0 ? "from-below" : "from-above"}`}>
-            <h2 className="q m-0 mb-2 text-[clamp(22px,3.2vw,30px)] font-normal leading-[1.25] text-[var(--tf-text)]"><span className="num mr-1.5 text-[.8em] text-[var(--accent)]">{i + 1}→</span> {page ? page.title || "Page" : p?.label || "Your question here"}{p?.mandatory && <span className="req text-[var(--accent)]"> *</span>}</h2>
-            {(page ? page.hint : p?.hint) && <p className="hint mb-[22px] mt-0 text-lg text-[#777] dark:text-[#b4acb9]">{page ? page.hint : p?.hint}</p>}
-            {page ? (
-              <div className="page-fields mt-5 flex flex-col gap-[22px]">{step.map((q, k) => (
-                <div className="page-field" key={q.id}>
-                  <label className="block text-lg text-[var(--tf-text-2)]">{q.label || "Untitled"}{q.mandatory && <span className="req text-[var(--accent)]"> *</span>}</label>
-                  {q.hint && <div className="mt-0.5 text-sm text-[#777] dark:text-[#b4acb9]">{q.hint}</div>}
-                  {field(q, k === 0)}
-                  {errs[q.id] && <div className={ERR}>⚠ {errs[q.id]}</div>}
-                </div>))}</div>
-            ) : p && (<>{field(p, true)}{errs[p.id] && <div className={ERR}>⚠ {errs[p.id]}</div>}</>)}
-            {gerr && <div className={ERR}>⚠ {gerr}</div>}
-            <div className="actions mt-6 flex items-center gap-3.5">
-              <button className="primary rounded border border-[var(--accent)] bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-default disabled:opacity-50 dark:text-white" disabled={busy} onClick={() => advance()}>{i === n - 1 ? "Submit" : "OK ✓"}</button>
-              <span className="tip text-[13px] text-[#888] dark:text-[#b4acb9]">press <b>Enter ↵</b></span>
+          <div key={i} className={`slide from-above w-full ${isMobileView ? "flex flex-col flex-1 justify-between" : ""}`}>
+            <div className={isMobileView ? "my-auto" : ""}>
+              <h2 className="q text-cascade-1 m-0 mb-1 flex items-start gap-2.5 text-[clamp(22px,3.2vw,28px)] font-normal leading-[1.3] text-[#262627] dark:text-[#f2eff3]">
+                <span className="tf-badge-num inline-flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-[4px] bg-[#262627] px-1.5 text-[12px] font-bold leading-none text-white shadow-sm dark:bg-[#39343d] dark:text-[#f2eff3]">{i + 1}</span>
+                <span className="flex-1">
+                  {page ? page.title || "Page" : p?.label || (preview ? "Your question here. Recall information with @" : "...")}
+                  {p?.mandatory && <span className="req text-[#e04f4f]"> *</span>}
+                </span>
+              </h2>
+              {((page ? page.hint : p?.hint) || preview) && (
+                <p className="hint text-cascade-2 mb-5 mt-1 text-[15px] italic text-[#737373] dark:text-[#a1a1aa]">
+                  {(page ? page.hint : p?.hint) || (preview ? "Description (optional)" : "")}
+                </p>
+              )}
+              {page ? (
+                <div className="page-fields mt-5 flex flex-col gap-[22px]">{step.map((q, k) => (
+                  <div className="page-field text-cascade-3" key={q.id}>
+                    <label className="block text-lg font-normal text-[#262627] dark:text-[#f2eff3]">{q.label || "Untitled"}{q.mandatory && <span className="req text-[#e04f4f]"> *</span>}</label>
+                    {q.hint && <div className="mt-0.5 text-sm italic text-[#737373] dark:text-[#a1a1aa]">{q.hint}</div>}
+                    {field(q, k === 0)}
+                    {errs[q.id] && <div className={ERR}>⚠ {errs[q.id]}</div>}
+                  </div>))}</div>
+              ) : p && (<div className="text-cascade-3">{field(p, true)}{errs[p.id] && <div className={ERR}>⚠ {errs[p.id]}</div>}</div>)}
+              {gerr && <div className={ERR}>⚠ {gerr}</div>}
+            </div>
+
+            <div className={`actions text-cascade-4 ${isMobileView ? "mt-auto pt-6 w-full" : "mt-6 flex items-center gap-3.5"}`}>
+              <button
+                className={`rounded-md border-0 bg-[#262627] font-semibold text-white shadow-sm transition hover:bg-[#181819] active:scale-[0.99] disabled:cursor-default disabled:opacity-50 dark:bg-[#39343d] dark:text-white dark:hover:bg-[#48434f] ${
+                  isMobileView ? "w-full py-3 text-sm" : "px-5 py-2.5 text-sm active:scale-95"
+                }`}
+                disabled={busy}
+                onClick={() => advance()}
+              >
+                {i === n - 1 ? "Submit" : "OK ✓"}
+              </button>
+              {!isMobileView && (
+                <span className="tip text-xs text-[#767676] dark:text-[#a1a1aa]">
+                  {i === n - 1 ? <>press <b>Ctrl + Enter ↵</b></> : <>press <b>Enter ↵</b></>}
+                </span>
+              )}
             </div>
           </div>)}
         {n > 0 && i >= n && (
-          <div className="slide from-below w-full">
-            <h2 className="q m-0 mb-2 text-[clamp(22px,3.2vw,30px)] font-normal leading-[1.25] text-[var(--tf-text)]">{inquiry.closing_heading}</h2>
-            <p className="hint mb-[22px] mt-0 text-lg text-[#777] dark:text-[#b4acb9]">{inquiry.closing_text}</p>
-            {preview && <button className="primary rounded border border-[var(--accent)] bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" onClick={() => { setAns({}); setDir(-1); setI(0); }}>Restart preview</button>}
+          <div className="slide from-above w-full">
+            <h2 className="q text-cascade-1 m-0 mb-2 text-[clamp(22px,3.2vw,30px)] font-normal leading-[1.25] text-[#262627] dark:text-[#f2eff3]">{inquiry.closing_heading}</h2>
+            <p className="hint text-cascade-2 mb-[22px] mt-0 text-lg italic text-[#737373] dark:text-[#b4acb9]">{inquiry.closing_text}</p>
+            {preview && <button className="rounded-md border-0 bg-[#262627] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#181819] active:scale-95 dark:bg-[#39343d] dark:text-white dark:hover:bg-[#48434f]" onClick={() => { setAns({}); setDir(-1); setI(0); }}>Restart preview</button>}
           </div>)}
       </div>
-      {n > 0 && i < n && (
-        <div className="nav absolute bottom-5 right-5 flex">
-          <button className="size-9 border-0 border-r border-r-white/30 bg-[var(--accent)] text-base text-white first:rounded-l last:rounded-r disabled:opacity-40" disabled={i === 0} onClick={back}>↑</button>
-          <button className="size-9 border-0 bg-[var(--accent)] text-base text-white first:rounded-l last:rounded-r" onClick={() => advance()}>↓</button>
+      {n > 0 && i < n && !isMobileView && (
+        <div className="nav absolute bottom-5 right-5 flex items-center gap-2">
+          <div className="flex overflow-hidden rounded-md shadow-sm">
+            <button className="flex h-8 w-8 items-center justify-center border-0 bg-[#d4d4d8] text-sm text-[#444] transition-colors hover:bg-[#c4c4c8] disabled:opacity-40 disabled:hover:bg-[#d4d4d8] dark:bg-[#38383e] dark:text-[#d5cfd8] dark:hover:bg-[#484852]" disabled={i === 0} onClick={back} aria-label="Previous question">▲</button>
+            <button className="flex h-8 w-8 items-center justify-center border-0 border-l border-white/30 bg-[#d4d4d8] text-sm text-[#444] transition-colors hover:bg-[#c4c4c8] dark:bg-[#38383e] dark:text-[#d5cfd8] dark:hover:bg-[#484852]" onClick={() => advance()} aria-label="Next question">▼</button>
+          </div>
+          <div className="flex h-8 items-center gap-1.5 rounded-md bg-[#262627] px-3 text-xs font-medium text-white shadow-sm dark:bg-[#302c34] dark:text-[#f2eff3]">
+            <span className="font-semibold text-white/90">Powered by</span>
+            <span className="font-bold tracking-tight">Inquira</span>
+          </div>
         </div>)}
     </div>
   );
