@@ -1,9 +1,10 @@
+import json
 import math
 import re
-import json
 from datetime import date
 from urllib.parse import urlparse
-from .schemas import KINDS
+
+from ..schemas import KINDS
 
 EMAIL = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 PHONE = re.compile(r"^[+()\d.\-\s]{7,25}$")
@@ -21,6 +22,7 @@ def check_value(prompt, raw):
     v = "" if raw is None else str(raw).strip()
     if v == "":
         return "This question is required" if prompt.mandatory else None
+
     k = prompt.kind
     if k == "email" and not EMAIL.match(v):
         return "That email address doesn't look right"
@@ -89,7 +91,7 @@ def check_value(prompt, raw):
             return "That email address doesn't look right"
         if phone and not PHONE.fullmatch(phone):
             return "Enter a valid phone number"
-        if prompt.mandatory and not all(values.get(field, "").strip() for field in ("name", "email", "phone")):
+        if prompt.mandatory and not all(values.get(field, "").strip() for field in fields):
             return "Complete all contact fields"
     if k == "yes_no" and v not in ("yes", "no"):
         return "Answer yes or no"
@@ -103,4 +105,5 @@ def check_value(prompt, raw):
 
 
 def valid_kind(k):
+    """Return True if the question kind is supported."""
     return k in KINDS

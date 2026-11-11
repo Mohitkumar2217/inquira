@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, r"backend\.venv\Lib\site-packages")
 sys.path.insert(0, r"backend")
 
-from app.database import SessionLocal
+from app.config.database import SessionLocal
 from app.models import Inquiry, Workspace, Reply, Prompt
 from app.main import (
     list_workspaces, create_workspace, rename_workspace, move_workspace_up, move_workspace_down,

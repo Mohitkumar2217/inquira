@@ -1,6 +1,7 @@
 import random
 from datetime import datetime, timedelta
-from .models import Inquiry, Prompt, Reply, ReplyItem, Form, Question, FormResponse, Answer, Workspace
+
+from ..models import Answer, Form, FormResponse, Inquiry, Prompt, Question, Reply, ReplyItem, Workspace
 
 
 def _make(db, slug, title, accent, prompts, workspace_id=None):
@@ -36,10 +37,10 @@ def _fake_replies(db, inq, n, rng):
 
 
 def seed_if_empty(db):
+    """Populate initial demo workspaces, forms, questions, and sample replies when empty."""
     if db.query(Inquiry).count():
         return
 
-    # Ensure default workspaces exist
     pw = db.query(Workspace).filter_by(is_private=True).first()
     if not pw:
         pw = Workspace(name="My workspace", is_private=True, order_index=0)
@@ -70,8 +71,12 @@ def seed_if_empty(db):
     ], workspace_id=team_ws.id)
     draft = Inquiry(slug="draft0001", title="New form", status="draft", workspace_id=pw.id)
     page = {"key": "contact", "title": "Contact Info", "hint": ""}
-    for i, (kind, label) in enumerate([("short_text", "First name"), ("short_text", "Last name"),
-                                       ("phone", "Phone number"), ("email", "Email")]):
+    for i, (kind, label) in enumerate([
+        ("short_text", "First name"),
+        ("short_text", "Last name"),
+        ("phone", "Phone number"),
+        ("email", "Email"),
+    ]):
         draft.prompts.append(Prompt(position=i, kind=kind, label=label, hint="", mandatory=False, choices=[], page=dict(page)))
     db.add(draft)
     _fake_replies(db, a, 14, rng)
@@ -87,7 +92,6 @@ def seed_if_empty(db):
         db.add(f1)
         db.flush()
 
-        # Seed responses
         r1 = FormResponse(form_id=f1.id)
         r1.answers.append(Answer(question_id=q1.id, value="Alex Morgan"))
         r1.answers.append(Answer(question_id=q2.id, value="alex@example.com"))
@@ -95,4 +99,23 @@ def seed_if_empty(db):
         r1.answers.append(Answer(question_id=q4.id, value="yes"))
         db.add(r1)
 
+    db.commit()
+
+
+def ensure_default_data(db, seed_demo: bool = True) -> None:
+    """Ensure a primary private workspace exists and optionally seed demo forms."""
+    private_workspace = db.query(Workspace).filter_by(is_private=True).first()
+    if private_workspace is None:
+        private_workspace = Workspace(name="My workspace", is_private=True)
+        db.add(private_workspace)
+        db.flush()
+
+    db.query(Inquiry).filter(Inquiry.workspace_id.is_(None)).update(
+        {Inquiry.workspace_id: private_workspace.id}, synchronize_session=False
+    )
+    if seed_demo:
+        seed_if_empty(db)
+        db.query(Inquiry).filter(Inquiry.workspace_id.is_(None)).update(
+            {Inquiry.workspace_id: private_workspace.id}, synchronize_session=False
+        )
     db.commit()

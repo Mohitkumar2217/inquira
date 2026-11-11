@@ -3,10 +3,11 @@ import unittest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.database import Base
-from app.main import apply_payload, clone_prompts, inquiry_out
+from app.config.database import Base
+from app.lib.formatters import inquiry_out
 from app.models import Inquiry, Prompt
 from app.schemas import InquiryIn, PromptIn
+from app.services.inquiry_service import apply_payload, clone_prompts
 
 
 def contact_page(key="a"):

@@ -2,7 +2,7 @@ import json
 import unittest
 from types import SimpleNamespace
 
-from app.rules import check_value, valid_kind
+from app.lib.validators import check_value, valid_kind
 from app.schemas import KINDS
 
 

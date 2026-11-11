@@ -1,10 +1,12 @@
 import unittest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.database import Base
-from app.main import create_form, get_public_form, submit_response, generate_test_response, move_workspace_up, move_workspace_down, create_workspace
-from app.models import Form, Question, FormResponse, Answer, Inquiry, Prompt, Workspace
-from app.schemas import FormCreate, SubmitResponse, AnswerSubmit, WorkspaceIn
+from app.config.database import Base
+from app.controllers.form_controller import create_form, get_public_form, submit_response
+from app.controllers.response_controller import generate_test_response
+from app.controllers.workspace_controller import create_workspace, move_workspace_down, move_workspace_up
+from app.models import Answer, Form, FormResponse, Inquiry, Prompt, Question, Workspace
+from app.schemas import AnswerSubmit, FormCreate, SubmitResponse, WorkspaceIn
 
 class RelationalFormsApiTests(unittest.TestCase):
     def setUp(self):
