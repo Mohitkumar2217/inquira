@@ -22,7 +22,7 @@ export default function Modal({ title, onClose, children }: { title: string; onC
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="max-h-[88dvh] w-[min(520px,calc(100vw-24px))] animate-[pop_.18s_cubic-bezier(0.16,1,0.3,1)] overflow-y-auto rounded-2xl border border-[var(--tf-border)] bg-white p-5 text-[var(--tf-text)] shadow-[0_20px_60px_rgba(39,31,42,0.18)] sm:p-6 dark:border-[#39353e] dark:bg-[#26232a] dark:text-[#f2eff3] dark:shadow-[0_24px_64px_rgba(0,0,0,0.5)]"
+        className="max-h-[88dvh] w-[min(520px,calc(100vw-24px))] animate-pop overflow-y-auto rounded-2xl border border-[var(--tf-border)] bg-white p-5 text-[var(--tf-text)] shadow-[0_20px_60px_rgba(39,31,42,0.18)] sm:p-6 dark:border-[#39353e] dark:bg-[#26232a] dark:text-[#f2eff3] dark:shadow-[0_24px_64px_rgba(0,0,0,0.5)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between gap-3 border-b border-[var(--tf-border)] pb-3 dark:border-[#39353e]">

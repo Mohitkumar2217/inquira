@@ -16,7 +16,7 @@ import { USER } from "@/lib/user";
 import { Inquiry, Kind, PromptDTO, kindName, KIND_META } from "@/lib/types";
 
 let tempId = -1;
-const Soon = ({ what }: { what: string }) => <div className="soon mt-3.5 flex justify-between rounded-md bg-[#f6f6f6] px-3 py-2.5 text-[13px] dark:bg-[#29292d]"><b>{what}</b><span className="text-[#888] dark:text-[#a1a1aa]">Coming soon</span></div>;
+const Soon = ({ what }: { what: string }) => <div className="mt-3.5 flex justify-between rounded-md border border-[#ececef] bg-[#f7f7f8] px-3 py-2.5 text-[13px] dark:border-[#38383e] dark:bg-[#29292d]"><b>{what}</b><span className="text-[#888] dark:text-[#a1a1aa]">Coming soon</span></div>;
 type AccentStyle = React.CSSProperties & { "--accent": string };
 type SelectionId = number | "welcome" | "ending";
 
@@ -347,8 +347,8 @@ export default function Builder() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [dirty]);
-  if (loadError) return <div className="center-page grid min-h-screen place-content-center text-center"><p role="alert" className="text-[#c0392b]">{loadError}</p><Link className="btn inline-block rounded border border-[#ccc] bg-white px-3.5 py-2 text-sm text-[#262627] hover:bg-[#f4f4f4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:bg-[#29292d] dark:text-[#e4e4e7]" href="/">Back to forms</Link></div>;
-  if (!inq) return <div className="center-page muted grid min-h-screen place-content-center text-center text-[#777] dark:text-[#a1a1aa]">Loading…</div>;
+  if (loadError) return <div className="grid min-h-screen place-content-center text-center"><p role="alert" className="text-[#c0392b]">{loadError}</p><Link className="inline-block rounded border border-[#ccc] bg-white px-3.5 py-2 text-sm text-[#262627] hover:bg-[#f4f4f4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:bg-[#29292d] dark:text-[#e4e4e7]" href="/">Back to forms</Link></div>;
+  if (!inq) return <div className="grid min-h-screen place-content-center text-center text-[#777] dark:text-[#a1a1aa]">Loading…</div>;
 
   const steps = buildSteps(inq.prompts);
   const idx = typeof sel === "number" ? inq.prompts.findIndex((p) => p.id === sel) : -1;
@@ -597,7 +597,7 @@ export default function Builder() {
   const MENU_ITEM = "rounded-md border-0 bg-transparent px-3 py-2 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]";
   const kebab = (id: string, label: string, items: ReactNode) => (
     <span className="relative ml-auto" onClick={(e) => e.stopPropagation()}>
-      <button className="builder-question-menu border-0 bg-transparent text-[17px] text-[#777] hover:text-[#333] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-[#b4acb9] dark:hover:text-white" aria-label={`More options for ${label}`} aria-expanded={rowMenu === id} onClick={() => setRowMenu(rowMenu === id ? null : id)}>···</button>
+      <button className="border-0 bg-transparent text-[17px] text-[#777] hover:text-[#333] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-[#b4acb9] dark:hover:text-white" aria-label={`More options for ${label}`} aria-expanded={rowMenu === id} onClick={() => setRowMenu(rowMenu === id ? null : id)}>···</button>
       {rowMenu === id && (<>
         <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setRowMenu(null)} />
         <div className="absolute right-0 top-7 z-[21] flex min-w-[150px] flex-col rounded-lg border border-[var(--tf-border)] bg-white p-1.5 text-[var(--tf-text)] shadow-[0_8px_24px_rgba(0,0,0,.12)] dark:border-[#39353e] dark:bg-[#26232a]">{items}</div>
@@ -692,12 +692,12 @@ export default function Builder() {
   const link = `${typeof location !== "undefined" ? location.origin : ""}/f/${inq.slug}`;
 
   return (
-    <div className="builder h-screen min-h-[560px] flex flex-col bg-[var(--tf-panel-bg)] text-[var(--tf-text)] zoom-out-enter" style={{ "--accent": inq.accent } as AccentStyle}>
-      <header className="builder-header grid h-[46px] flex-[0_0_46px] grid-cols-[minmax(260px,1fr)_auto_minmax(260px,1fr)] items-center gap-[14px] border-b border-[var(--tf-border)] bg-white px-4 dark:bg-[#26232a] max-[900px]:h-[78px] max-[900px]:flex-[0_0_78px] max-[900px]:grid-cols-[minmax(180px,1fr)_auto] max-[900px]:gap-2 max-[900px]:px-2.5 max-[600px]:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="builder-breadcrumbs flex min-w-0 items-center gap-2 text-[13px] text-[#56565e] max-[600px]:gap-1.5">
+    <div className="h-screen min-h-[560px] flex flex-col bg-[var(--tf-panel-bg)] text-[var(--tf-text)] animate-zoom-out-enter motion-reduce:animate-none" style={{ "--accent": inq.accent } as AccentStyle}>
+      <header className="grid h-[46px] flex-[0_0_46px] grid-cols-[minmax(260px,1fr)_auto_minmax(260px,1fr)] items-center gap-[14px] border-b border-[var(--tf-border)] bg-white px-4 dark:border-[#34343a] dark:bg-[#26232a] max-[900px]:h-[78px] max-[900px]:flex-[0_0_78px] max-[900px]:grid-cols-[minmax(180px,1fr)_auto] max-[900px]:gap-2 max-[900px]:px-2.5 max-[600px]:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="flex min-w-0 items-center gap-2 text-[13px] text-[#56565e] max-[600px]:gap-1.5">
           <Link href="/" className="font-normal text-[#56565e] hover:text-[#262627] dark:text-[#a1a1aa] dark:hover:text-white">Forms</Link>
-          <span className="builder-crumb-separator text-[#999]">›</span>
-          <input aria-label="Form title" className="title-input min-w-[80px] w-[min(200px,28vw)] rounded px-1.5 py-1 text-[13px] font-normal text-[#262627] hover:bg-[#f4f4f5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#8a7590] dark:text-[#f2eff3] dark:hover:bg-[#303035]" value={inq.title} onChange={(e) => mutate((d) => { d.title = e.target.value; })} />
+          <span className="text-[#999]">›</span>
+          <input aria-label="Form title" className="min-w-[80px] w-[min(200px,28vw)] max-[600px]:w-[100px] rounded border-0 bg-transparent px-1.5 py-1 text-[13px] font-normal text-[#262627] outline-none hover:bg-[#f4f4f5] focus:bg-[#f4f4f5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#8a7590] dark:text-[#f2eff3] dark:hover:bg-[#303035] dark:focus:bg-[#303035]" value={inq.title} onChange={(e) => mutate((d) => { d.title = e.target.value; })} />
           <div className="hidden sm:flex items-center pl-1 text-[11px]">
             {saving ? (
               <span className="flex items-center gap-1.5 text-[#737373] dark:text-[#a1a1aa]">
@@ -719,18 +719,18 @@ export default function Builder() {
             )}
           </div>
         </div>
-        <nav className="builder-nav flex h-full items-center gap-1 self-stretch max-[900px]:col-span-full max-[900px]:row-start-2 max-[900px]:justify-center max-[900px]:h-9" aria-label="Form sections">
-          <button className={`h-full rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 text-[13px] text-[#55555d] hover:text-[#222] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] dark:text-[#d5cfd8] ${tab === "create" ? "on border-b-[#463449] font-semibold text-[#242126] dark:text-white" : ""}`} onClick={() => setTab("create")}>Content</button>
-          <button className="h-full rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 text-[13px] text-[#55555d] hover:text-[#222] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] dark:text-[#d5cfd8]" onClick={() => toast("Workflow is coming soon")}>Workflow</button>
-          <button className={`h-full rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 text-[13px] text-[#55555d] hover:text-[#222] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] dark:text-[#d5cfd8] ${tab === "connect" ? "on border-b-[#463449] font-semibold text-[#242126] dark:text-white" : ""}`} onClick={() => setTab("connect")}>Connect</button>
+        <nav className="flex h-full items-center gap-1 self-stretch max-[900px]:col-span-full max-[900px]:row-start-2 max-[900px]:justify-center max-[900px]:h-9" aria-label="Form sections">
+          <button className={`h-full rounded-none border-0 border-b-2 bg-transparent px-3 text-[13px] hover:text-[#222] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] dark:hover:text-white ${tab === "create" ? "border-b-[#463449] font-semibold text-[#242126] dark:border-b-[#d6a5e8] dark:text-white" : "border-transparent text-[#55555d] dark:text-[#d5cfd8]"}`} onClick={() => setTab("create")}>Content</button>
+          <button className="h-full rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 text-[13px] text-[#55555d] hover:text-[#222] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] dark:text-[#d5cfd8] dark:hover:text-white" onClick={() => toast("Workflow is coming soon")}>Workflow</button>
+          <button className={`h-full rounded-none border-0 border-b-2 bg-transparent px-3 text-[13px] hover:text-[#222] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] dark:hover:text-white ${tab === "connect" ? "border-b-[#463449] font-semibold text-[#242126] dark:border-b-[#d6a5e8] dark:text-white" : "border-transparent text-[#55555d] dark:text-[#d5cfd8]"}`} onClick={() => setTab("connect")}>Connect</button>
           {inq.status === "published" && (
             <>
-              <button className={`h-full rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 text-[13px] text-[#55555d] hover:text-[#222] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] dark:text-[#d5cfd8] ${tab === "share" ? "on border-b-[#463449] font-semibold text-[#242126] dark:text-white" : ""}`} onClick={() => setTab("share")}>Share</button>
-              <Link className="builder-results-link flex items-center text-[var(--tf-text-2)] hover:bg-[#f4f1f5] hover:text-[var(--tf-text)] dark:text-[#d5cfd8] dark:hover:bg-[#343039] dark:hover:text-white" href={`/results/${inq.id}`}>Results</Link>
+              <button className={`h-full rounded-none border-0 border-b-2 bg-transparent px-3 text-[13px] hover:text-[#222] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] dark:hover:text-white ${tab === "share" ? "border-b-[#463449] font-semibold text-[#242126] dark:border-b-[#d6a5e8] dark:text-white" : "border-transparent text-[#55555d] dark:text-[#d5cfd8]"}`} onClick={() => setTab("share")}>Share</button>
+              <Link className="flex h-full items-center border-b-2 border-transparent px-3 text-[13px] text-[var(--tf-text-2)] hover:bg-[#f4f1f5] hover:text-[var(--tf-text)] dark:text-[#d5cfd8] dark:hover:bg-[#343039] dark:hover:text-white" href={`/results/${inq.id}`}>Results</Link>
             </>
           )}
         </nav>
-        <div className="builder-header-actions flex items-center justify-end gap-2 max-[900px]:col-start-2 max-[900px]:row-start-1 max-[600px]:gap-[5px]">
+        <div className="flex items-center justify-end gap-2 max-[900px]:col-start-2 max-[900px]:row-start-1 max-[600px]:gap-[5px]">
           {inq.status !== "published" ? (
             /* BEFORE share click (Unpublished): displays "> Share" button */
             <button
@@ -783,13 +783,13 @@ export default function Builder() {
 
           {/* View plans CTA (Green button) */}
           <button
-            className="builder-plans rounded-lg border-0 bg-[#087663] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#076653] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 max-[600px]:hidden"
+            className="rounded-lg border-0 bg-[#087663] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#076653] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 max-[600px]:hidden"
             onClick={() => toast("View plans is coming soon")}
           >
             View plans
           </button>
           <button
-            className="builder-help size-7 rounded-full border border-[#d5d5da] bg-white text-[13px] text-[#555] hover:bg-[#f3f3f4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-[#4b4550] dark:bg-[#302c34] dark:text-[#e4e4e7] dark:hover:bg-[#3a3540] max-[600px]:hidden"
+            className="size-7 rounded-full border border-[#d5d5da] bg-white text-[13px] text-[#555] hover:bg-[#f3f3f4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-[#4b4550] dark:bg-[#302c34] dark:text-[#e4e4e7] dark:hover:bg-[#3a3540] max-[600px]:hidden"
             aria-label="Help"
             onClick={() => toast("Help is coming soon")}
           >
@@ -800,8 +800,8 @@ export default function Builder() {
         </div>
       </header>
 
-      <div className="builder-toolbar grid h-[54px] flex-[0_0_54px] grid-cols-[250px_minmax(0,1fr)_250px] items-center gap-3.5 border-b border-[var(--tf-border)] bg-white px-3 py-1.5 dark:border-[#34343a] dark:bg-[#202024] max-[900px]:grid-cols-[210px_minmax(0,1fr)_32px] max-[600px]:grid-cols-[1fr_auto] max-[600px]:p-1.5">
-        <button className="builder-mode flex h-10 w-full items-center justify-between rounded-2xl bg-[#f4f4f6] px-3.5 text-left text-[13px] font-medium text-[#2d2d30] hover:bg-[#eaeaea] focus-visible:outline focus-visible:outline-2 dark:bg-[#2a272f] dark:text-[#e4e4e7] max-[600px]:hidden" onClick={() => toast("Universal mode is selected")}>
+      <div className="grid h-[54px] flex-[0_0_54px] grid-cols-[250px_minmax(0,1fr)_250px] items-center gap-3.5 border-b border-[var(--tf-border)] bg-white px-3 py-1.5 dark:border-[#34343a] dark:bg-[#202024] max-[900px]:grid-cols-[210px_minmax(0,1fr)_32px] max-[600px]:grid-cols-[1fr_auto] max-[600px]:p-1.5">
+        <button className="flex h-10 w-full items-center justify-between rounded-2xl bg-[#f4f4f6] px-3.5 text-left text-[13px] font-medium text-[#2d2d30] hover:bg-[#eaeaea] focus-visible:outline focus-visible:outline-2 dark:bg-[#2a272f] dark:text-[#e4e4e7] max-[600px]:hidden" onClick={() => toast("Universal mode is selected")}>
           <div className="flex items-center gap-2">
             <svg className="size-4 text-[#555] dark:text-[#aaa]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="4" y1="9" x2="20" y2="9" />
@@ -811,12 +811,12 @@ export default function Builder() {
           </div>
           <svg className="size-3 text-[#666]" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="m4 6 4 4 4-4" /></svg>
         </button>
-        <div className="builder-tools flex min-w-0 items-center gap-2 max-[600px]:col-start-1">
-          <button className="builder-add-content inline-flex min-w-[132px] shrink-0 items-center gap-[7px] whitespace-nowrap rounded-md border border-[#262627] bg-[#262627] px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#181819] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-[var(--tf-purple)] dark:bg-[var(--tf-purple)] dark:hover:bg-[var(--tf-purple-dark)] max-[600px]:min-w-[30px] max-[600px]:px-[7px]" onClick={() => setAdding(true)}>＋ <span>Add content</span></button>
-          <button className={`builder-design-tool h-9 min-w-9 rounded-[7px] border border-transparent bg-transparent px-2.5 text-xs text-[#62626a] hover:bg-[#f1eff2] hover:text-[#332b35] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-[#d5cfd8] dark:hover:bg-[#302c34] dark:hover:text-white max-[600px]:min-w-[30px] max-[600px]:px-[7px] ${designOpen ? "active bg-[#f1eff2] text-[#332b35] dark:bg-[#343039] dark:text-white" : ""}`} aria-pressed={designOpen} onClick={() => setDesignOpen(!designOpen)}>🎨 <span>Design</span></button>
-          <span className="builder-tool-divider mx-0.5 h-6 w-px bg-[#e6e6e8] dark:bg-[#38383e] max-[600px]:hidden" />
+        <div className="flex min-w-0 items-center gap-2 max-[600px]:col-start-1">
+          <button className="inline-flex min-w-[132px] shrink-0 items-center gap-[7px] whitespace-nowrap rounded-md border border-[#262627] bg-[#262627] px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#181819] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-[var(--tf-purple)] dark:bg-[var(--tf-purple)] dark:hover:bg-[var(--tf-purple-dark)] max-[600px]:min-w-[30px] max-[600px]:px-[7px]" onClick={() => setAdding(true)}>＋ <span className="max-[600px]:hidden">Add content</span></button>
+          <button className={`h-9 min-w-9 rounded-[7px] border border-transparent px-2.5 text-xs hover:bg-[#f1eff2] hover:text-[#332b35] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:hover:bg-[#302c34] dark:hover:text-white max-[600px]:min-w-[30px] max-[600px]:px-[7px] ${designOpen ? "bg-[#f1eff2] text-[#332b35] dark:bg-[#343039] dark:text-white" : "bg-transparent text-[#62626a] dark:text-[#d5cfd8]"}`} aria-pressed={designOpen} onClick={() => setDesignOpen(!designOpen)}>🎨 <span className="max-[600px]:hidden">Design</span></button>
+          <span className="mx-0.5 h-6 w-px bg-[#e6e6e8] dark:bg-[#38383e] max-[600px]:hidden" />
           <button
-            className={`h-9 min-w-9 rounded-[7px] border border-transparent bg-transparent px-2.5 flex items-center justify-center text-[#62626a] hover:bg-[#f1eff2] hover:text-[#332b35] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-[#d5cfd8] dark:hover:bg-[#302c34] dark:hover:text-white max-[600px]:min-w-[30px] max-[600px]:px-[7px] ${previewDevice === "desktop" ? "active bg-[#f1eff2] text-[#332b35] dark:bg-[#343039] dark:text-white font-bold" : ""}`}
+            className={`h-9 min-w-9 rounded-[7px] border border-transparent px-2.5 flex items-center justify-center hover:bg-[#f1eff2] hover:text-[#332b35] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:hover:bg-[#302c34] dark:hover:text-white max-[600px]:min-w-[30px] max-[600px]:px-[7px] ${previewDevice === "desktop" ? "bg-[#f1eff2] text-[#332b35] dark:bg-[#343039] dark:text-white font-bold" : "bg-transparent text-[#62626a] dark:text-[#d5cfd8]"}`}
             aria-label="Desktop view"
             title="Desktop view"
             onClick={() => setPreviewDevice("desktop")}
@@ -824,7 +824,7 @@ export default function Builder() {
             <DesktopIcon className="size-4" />
           </button>
           <button
-            className={`h-9 min-w-9 rounded-[7px] border border-transparent bg-transparent px-2.5 flex items-center justify-center text-[#62626a] hover:bg-[#f1eff2] hover:text-[#332b35] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-[#d5cfd8] dark:hover:bg-[#302c34] dark:hover:text-white max-[600px]:min-w-[30px] max-[600px]:px-[7px] ${previewDevice === "mobile" ? "active bg-[#f1eff2] text-[#332b35] dark:bg-[#343039] dark:text-white font-bold" : ""}`}
+            className={`h-9 min-w-9 rounded-[7px] border border-transparent px-2.5 flex items-center justify-center hover:bg-[#f1eff2] hover:text-[#332b35] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:hover:bg-[#302c34] dark:hover:text-white max-[600px]:min-w-[30px] max-[600px]:px-[7px] ${previewDevice === "mobile" ? "bg-[#f1eff2] text-[#332b35] dark:bg-[#343039] dark:text-white font-bold" : "bg-transparent text-[#62626a] dark:text-[#d5cfd8]"}`}
             aria-label="Mobile view"
             title="Mobile view"
             onClick={() => setPreviewDevice("mobile")}
@@ -850,12 +850,12 @@ export default function Builder() {
           <button className="h-9 min-w-9 rounded-[7px] border border-transparent bg-transparent px-2.5 text-sm text-[#62626a] hover:bg-[#f1eff2] hover:text-[#332b35] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-[#d5cfd8] dark:hover:bg-[#302c34] dark:hover:text-white max-[600px]:min-w-[30px] max-[600px]:px-[7px]" aria-label="Language settings" onClick={() => { setFormSettingsTab("language"); setFormSettingsOpen(true); }}>A文</button>
           <button className="h-9 min-w-9 rounded-[7px] border border-transparent bg-transparent px-2.5 text-sm text-[#62626a] hover:bg-[#f1eff2] hover:text-[#332b35] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-[#d5cfd8] dark:hover:bg-[#302c34] dark:hover:text-white max-[600px]:min-w-[30px] max-[600px]:px-[7px]" aria-label="More form settings" onClick={() => { setFormSettingsTab("general"); setFormSettingsOpen(true); }}>⚙</button>
         </div>
-        <button className="builder-collapse justify-self-end rounded-md border-0 bg-transparent text-[15px] text-[#666] hover:bg-[#f3f3f4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-[#d5cfd8] dark:hover:bg-[#302c34] max-[600px]:col-start-2 max-[600px]:row-start-1" aria-label="Collapse settings panel" onClick={() => toast("Panel controls are coming soon")}>◧</button>
+        <button className="size-[34px] justify-self-end rounded-md border-0 bg-transparent text-[15px] text-[#666] hover:bg-[#f3f3f4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-[#d5cfd8] dark:hover:bg-[#302c34] max-[600px]:col-start-2 max-[600px]:row-start-1" aria-label="Collapse settings panel" onClick={() => toast("Panel controls are coming soon")}>◧</button>
       </div>
 
       {tab === "create" && (
-        <div className="panes grid min-h-0 flex-1 grid-cols-[250px_minmax(0,1fr)_250px] max-[900px]:grid-cols-[210px_minmax(0,1fr)] max-[600px]:grid-cols-1">
-          <aside className="left builder-pages flex min-w-0 flex-col gap-2.5 overflow-y-auto border-r border-[#e5e5e8] bg-white p-3 dark:border-[#34343a] dark:bg-[#1d1b20] max-[600px]:hidden select-none">
+        <div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,1fr)_250px] max-[900px]:grid-cols-[210px_minmax(0,1fr)] max-[600px]:grid-cols-1">
+          <aside className="flex min-w-0 flex-col gap-2.5 overflow-y-auto border-r border-[#e5e5e8] bg-white p-3 dark:border-[#34343a] dark:bg-[#1d1b20] max-[600px]:hidden select-none">
             {/* Pages Container (light gray rounded container) */}
             <div className="flex flex-col gap-2 rounded-2xl bg-[#f4f4f6] p-2.5 dark:bg-[#252229]">
               <div className="flex items-center justify-between px-1 text-xs font-semibold text-[#262627] dark:text-[#f2eff3]">
@@ -1054,7 +1054,7 @@ export default function Builder() {
           </aside>
 
           <section
-            className="middle relative flex min-w-0 flex-1 flex-col transition-colors duration-200"
+            className="relative flex min-w-0 flex-1 flex-col transition-colors duration-200"
             style={{
               backgroundColor: canvasBgColor,
               color: canvasTextColor,
@@ -1063,7 +1063,7 @@ export default function Builder() {
             {sel === "welcome" ? (
               <div className="flex flex-1 items-center justify-center p-8 max-[600px]:p-4 overflow-auto">
                 <div
-                  className={`w-full from-above transition-all duration-300 text-center flex flex-col items-center ${
+                  className={`w-full animate-from-above transition-all duration-300 text-center flex flex-col items-center ${
                     previewDevice === "mobile"
                       ? "max-w-[390px] rounded-[24px] border-2 border-neutral-300/80 bg-white p-6 shadow-xl dark:border-neutral-700 dark:bg-[#202024]"
                       : "max-w-2xl"
@@ -1108,7 +1108,7 @@ export default function Builder() {
             ) : sel === "ending" ? (
               <div className="flex flex-1 items-center justify-center p-8 max-[600px]:p-4 overflow-auto">
                 <div
-                  className={`w-full from-above transition-all duration-300 text-center flex flex-col items-center ${
+                  className={`w-full animate-from-above transition-all duration-300 text-center flex flex-col items-center ${
                     previewDevice === "mobile"
                       ? "max-w-[390px] rounded-[24px] border-2 border-neutral-300/80 bg-white p-6 shadow-xl dark:border-neutral-700 dark:bg-[#202024]"
                       : "max-w-2xl"
@@ -1144,14 +1144,14 @@ export default function Builder() {
             ) : cur && !onPage ? (
               <div className="flex flex-1 items-center justify-center p-8 max-[600px]:p-4 overflow-auto">
                 <div
-                  className={`w-full from-above transition-all duration-300 ${
+                  className={`w-full animate-from-above transition-all duration-300 ${
                     previewDevice === "mobile"
                       ? "max-w-[390px] rounded-[24px] border-2 border-neutral-300/80 bg-white p-6 shadow-xl dark:border-neutral-700 dark:bg-[#202024]"
                       : "max-w-2xl"
                   }`}
                 >
                   <div className="flex items-start gap-2.5">
-                    <span className="tf-badge-num inline-flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-[4px] bg-[#262627] px-1.5 text-[12px] font-bold text-white shadow-sm dark:bg-[#39343d] dark:text-[#f2eff3]">
+                    <span className="inline-flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-[4px] bg-[#262627] px-1.5 text-[12px] font-bold leading-none text-white shadow-sm dark:bg-[#39343d] dark:text-[#f2eff3]">
                       {curStep + 1}
                     </span>
                     <div className="flex-1">
@@ -1388,7 +1388,7 @@ export default function Builder() {
             )}
           </section>
 
-          <aside className="right relative flex min-w-0 flex-col gap-2 overflow-auto border-l border-[var(--tf-border)] bg-[#f7f7f8] p-3.5 dark:border-[#34343a] dark:bg-[#252229] max-[900px]:hidden">
+          <aside className="relative flex min-w-0 flex-col gap-2 overflow-auto border-l border-[var(--tf-border)] bg-[#f7f7f8] p-3.5 dark:border-[#34343a] dark:bg-[#252229] max-[900px]:hidden">
             {/* Theme gallery side panel if Design is active */}
             {designOpen ? (
               <div className="flex flex-col gap-3">
@@ -1779,35 +1779,35 @@ export default function Builder() {
       )}
 
       {tab === "settings" && (
-        <div className="page-pad mx-auto my-8 max-w-[560px] px-5">
-          <h3>Design</h3>
-          <label>Accent colour</label>
+        <div className="mx-auto my-6 w-full max-w-[760px] flex-1 rounded-xl border border-[#ececef] bg-white px-8 py-7 dark:border-[#38383e] dark:bg-[#242428] max-[600px]:m-3.5 max-[600px]:p-5">
+          <h3 className="mb-3 text-[17px] font-semibold">Design</h3>
+          <label className="mb-1.5 mt-3.5 block text-[13px] text-[#555] dark:text-[#a1a1aa]">Accent colour</label>
           <input type="color" value={inq.accent} onChange={(e) => mutate((d) => { d.accent = e.target.value; })} />
-          <h3>Thank-you screen</h3>
-          <label>Heading</label>
-          <input className="box-input my-1 mb-2.5 w-full rounded border border-[#ccc] px-2.5 py-[9px] text-[13px] focus:border-[#8a6e91] focus:outline focus:outline-2 focus:outline-[#f1e9f2] dark:border-[#44444b] dark:bg-[#1d1d21] dark:text-[#f4f4f5]" value={inq.closing_heading} onChange={(e) => mutate((d) => { d.closing_heading = e.target.value; })} />
-          <label>Message</label>
-          <textarea className="box-input my-1 mb-2.5 w-full rounded border border-[#ccc] px-2.5 py-[9px] text-[13px] focus:border-[#8a6e91] focus:outline focus:outline-2 focus:outline-[#f1e9f2] dark:border-[#44444b] dark:bg-[#1d1d21] dark:text-[#f4f4f5]" rows={3} value={inq.closing_text} onChange={(e) => mutate((d) => { d.closing_text = e.target.value; })} />
+          <h3 className="mb-3 mt-7 text-[17px] font-semibold">Thank-you screen</h3>
+          <label className="mb-1.5 mt-3.5 block text-[13px] text-[#555] dark:text-[#a1a1aa]">Heading</label>
+          <input className="my-1 mb-2.5 w-full rounded-lg border border-[#ccc] px-2.5 py-[9px] text-[13px] focus:border-[#8a6e91] focus:outline focus:outline-2 focus:outline-[#f1e9f2] dark:border-[#44444b] dark:bg-[#1d1d21] dark:text-[#f4f4f5]" value={inq.closing_heading} onChange={(e) => mutate((d) => { d.closing_heading = e.target.value; })} />
+          <label className="mb-1.5 mt-3.5 block text-[13px] text-[#555] dark:text-[#a1a1aa]">Message</label>
+          <textarea className="my-1 mb-2.5 w-full rounded-lg border border-[#ccc] px-2.5 py-[9px] text-[13px] focus:border-[#8a6e91] focus:outline focus:outline-2 focus:outline-[#f1e9f2] dark:border-[#44444b] dark:bg-[#1d1d21] dark:text-[#f4f4f5]" rows={3} value={inq.closing_text} onChange={(e) => mutate((d) => { d.closing_text = e.target.value; })} />
           <Soon what="Custom fonts & backgrounds" />
         </div>
       )}
 
       {tab === "connect" && (
-        <div className="page-pad mx-auto my-8 max-w-[560px] px-5">
-          <h3>Share</h3>
-          {inq.status === "published" ? <input className="box-input my-1 mb-2.5 w-full rounded border border-[#ccc] px-2.5 py-[9px] text-[13px] focus:border-[#8a6e91] focus:outline focus:outline-2 focus:outline-[#f1e9f2] dark:border-[#44444b] dark:bg-[#1d1d21] dark:text-[#f4f4f5]" readOnly value={link} onFocus={(e) => e.target.select()} /> : <p className="muted text-[#777] dark:text-[#a1a1aa]">Publish the form to get a public link.</p>}
+        <div className="mx-auto my-6 w-full max-w-[760px] flex-1 rounded-xl border border-[#ececef] bg-white px-8 py-7 dark:border-[#38383e] dark:bg-[#242428] max-[600px]:m-3.5 max-[600px]:p-5">
+          <h3 className="mb-3 text-[17px] font-semibold">Share</h3>
+          {inq.status === "published" ? <input className="my-1 mb-2.5 w-full rounded-lg border border-[#ccc] px-2.5 py-[9px] text-[13px] focus:border-[#8a6e91] focus:outline focus:outline-2 focus:outline-[#f1e9f2] dark:border-[#44444b] dark:bg-[#1d1d21] dark:text-[#f4f4f5]" readOnly value={link} onFocus={(e) => e.target.select()} /> : <p className="text-[#777] dark:text-[#a1a1aa]">Publish the form to get a public link.</p>}
           <Soon what="Integrations & webhooks" /><Soon what="Team collaboration" />
         </div>
       )}
 
       {tab === "share" && (
-        <div className="share-tab flex-1 overflow-auto bg-[#fafafa] p-8 dark:bg-[#18181c] max-[640px]:p-4">
+        <div className="flex-1 overflow-auto bg-[#fafafa] p-8 dark:bg-[#18181c] max-[640px]:p-4">
           {shareLoading ? (
             <div className="flex flex-1 items-center justify-center min-h-[450px]">
               <div className="size-8 rounded-full border-2 border-[#e4e4e7] border-t-[#262627] animate-spin dark:border-[#38353e] dark:border-t-white" />
             </div>
           ) : (
-            <div className="mx-auto flex max-w-2xl flex-col items-center zoom-out-enter">
+            <div className="mx-auto flex max-w-2xl flex-col items-center animate-zoom-out-enter motion-reduce:animate-none">
               <h1 className="mb-8 text-2xl font-normal text-[#262627] dark:text-[#f2eff3] max-[640px]:text-xl">
                 Choose how you’d like to share your form
               </h1>

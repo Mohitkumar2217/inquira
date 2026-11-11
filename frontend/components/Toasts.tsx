@@ -100,7 +100,7 @@ export default function ToastProvider({ children }: { children: React.ReactNode 
         {items.map((t) => (
           <div
             key={t.id}
-            className="pointer-events-auto flex w-fit max-w-full animate-[rise_.22s_cubic-bezier(0.16,1,0.3,1)] items-center gap-2.5 rounded-2xl border border-[var(--tf-border)] bg-white/95 py-2 pl-2.5 pr-3 text-[13px] font-medium text-[var(--tf-text)] shadow-[0_10px_30px_rgba(39,31,42,0.12)] backdrop-blur-md dark:border-[#39353e] dark:bg-[#26232a]/95 dark:text-[#f2eff3] dark:shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
+            className="pointer-events-auto flex w-fit max-w-full animate-rise items-center gap-2.5 rounded-2xl border border-[var(--tf-border)] bg-white/95 py-2 pl-2.5 pr-3 text-[13px] font-medium text-[var(--tf-text)] shadow-[0_10px_30px_rgba(39,31,42,0.12)] backdrop-blur-md dark:border-[#39353e] dark:bg-[#26232a]/95 dark:text-[#f2eff3] dark:shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
           >
             <ToastBadge tone={t.tone} />
             <span className="min-w-0 flex-1 break-words leading-snug">{t.msg}</span>

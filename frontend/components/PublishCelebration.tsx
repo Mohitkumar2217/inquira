@@ -70,15 +70,19 @@ export default function PublishCelebration({ active, onComplete }: PublishCelebr
           {HALO_DOTS.map((dot, index) => (
             <div
               key={index}
-              className="absolute rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"
-              style={{
-                width: `${dot.size}px`,
-                height: `${dot.size}px`,
-                transform: `translate(${dot.x}px, ${dot.y}px)`,
-                animation: `haloDotPulse 1.4s ease-in-out infinite alternate ${dot.delay}s`,
-                opacity: 0.85,
-              }}
-            />
+              className="absolute"
+              style={{ transform: `translate(${dot.x}px, ${dot.y}px)` }}
+            >
+              <div
+                className="animate-halo-dot-pulse rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+                style={{
+                  width: `${dot.size}px`,
+                  height: `${dot.size}px`,
+                  animationDelay: `${dot.delay}s`,
+                  opacity: 0.85,
+                }}
+              />
+            </div>
           ))}
         </div>
 
@@ -131,19 +135,6 @@ export default function PublishCelebration({ active, onComplete }: PublishCelebr
           )}
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes haloDotPulse {
-          0% {
-            opacity: 0.35;
-            transform: scale(0.75) translate(calc(var(--tw-translate-x, 0)), calc(var(--tw-translate-y, 0)));
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1.3) translate(calc(var(--tw-translate-x, 0)), calc(var(--tw-translate-y, 0)));
-          }
-        }
-      `}</style>
     </div>
   );
 }

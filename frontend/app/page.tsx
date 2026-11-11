@@ -8,6 +8,7 @@ import AccountMenu from "@/components/AccountMenu";
 import { ThemeToggleButton } from "@/components/ThemeProvider";
 import { useToast } from "@/components/Toasts";
 import { call, errorMessage, send } from "@/lib/api";
+import { SHIMMER } from "@/lib/styles";
 import { Inquiry, Workspace } from "@/lib/types";
 import { USER } from "@/lib/user";
 
@@ -255,8 +256,8 @@ export default function Dashboard() {
   };
 
   const Menu = ({ f }: { f: Inquiry }) => (
-    <div className="tf-menu-wrap relative z-20" onClick={(e) => e.stopPropagation()}>
-      <button className="tf-dots rounded-md border-0 bg-transparent px-2 py-1 text-xl tracking-[1px] text-[var(--tf-muted)] hover:bg-[#eee] dark:hover:bg-[#303035]" aria-label={`Actions for ${f.title}`} onClick={() => { setMenu(menu === f.id ? null : f.id); setSubmenu(null); }}>···</button>
+    <div className="relative z-[22]" onClick={(e) => e.stopPropagation()}>
+      <button className="rounded-md border-0 bg-transparent px-2 py-1 text-xl tracking-[1px] text-[var(--tf-muted)] hover:bg-[#eee] dark:hover:bg-[#303035]" aria-label={`Actions for ${f.title}`} onClick={() => { setMenu(menu === f.id ? null : f.id); setSubmenu(null); }}>···</button>
       {menu === f.id && (<>
         <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setMenu(null)} />
         <div className="absolute right-0 top-[34px] z-[21] flex min-w-[220px] flex-col overflow-visible rounded-lg border border-[var(--tf-border)] bg-white p-1.5 text-[var(--tf-text)] shadow-[0_8px_24px_rgba(0,0,0,.12)] dark:border-[#39353e] dark:bg-[#26232a]">
@@ -276,17 +277,17 @@ export default function Dashboard() {
           <hr className="my-1.5 w-full border-0 border-t border-[var(--tf-border)]" />
           <button className="rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" onClick={() => { setMenu(null); setRenaming(f); setName(f.title); }}>Rename</button>
           <button className="rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" onClick={() => act(() => call(`/api/inquiries/${f.id}/duplicate`, send("POST")), "Form duplicated")}>Duplicate</button>
-          <div className="tf-submenu-wrap relative">
+          <div className="relative">
             <button className="flex w-full items-center justify-between rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" onClick={() => setSubmenu(submenu?.id === f.id && submenu.action === "copy" ? null : { id: f.id, action: "copy" })}>Copy to <span>›</span></button>
-            {submenu?.id === f.id && submenu.action === "copy" && <div className="tf-submenu absolute left-full top-0 z-[22] flex min-w-[180px] flex-col rounded-lg border border-[var(--tf-border)] bg-white p-1.5 shadow-[0_8px_24px_rgba(0,0,0,.12)] dark:border-[#39353e] dark:bg-[#26232a] max-[620px]:left-auto max-[620px]:right-full">
+            {submenu?.id === f.id && submenu.action === "copy" && <div className="absolute left-full top-0 z-[22] flex min-w-[180px] flex-col rounded-lg border border-[var(--tf-border)] bg-white p-1.5 shadow-[0_8px_24px_rgba(0,0,0,.12)] dark:border-[#39353e] dark:bg-[#26232a] max-[620px]:left-auto max-[620px]:right-full">
               {workspaces.filter((w) => w.id !== f.workspace_id).map((w) => <button className="rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm text-[var(--tf-text)] hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" key={w.id} onClick={() => act(
                 () => call(`/api/inquiries/${f.id}/copy-to/${w.id}`, send("POST")), `Copied to ${w.name}`)}>{w.name}</button>)}
               {workspaces.length < 2 && <span className="px-3 py-2 text-xs text-[var(--tf-muted)]">Create another workspace first</span>}
             </div>}
           </div>
-          <div className="tf-submenu-wrap relative">
+          <div className="relative">
             <button className="flex w-full items-center justify-between rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" onClick={() => setSubmenu(submenu?.id === f.id && submenu.action === "move" ? null : { id: f.id, action: "move" })}>Move to <span>›</span></button>
-            {submenu?.id === f.id && submenu.action === "move" && <div className="tf-submenu absolute left-full top-0 z-[22] flex min-w-[180px] flex-col rounded-lg border border-[var(--tf-border)] bg-white p-1.5 shadow-[0_8px_24px_rgba(0,0,0,.12)] dark:border-[#39353e] dark:bg-[#26232a] max-[620px]:left-auto max-[620px]:right-full">
+            {submenu?.id === f.id && submenu.action === "move" && <div className="absolute left-full top-0 z-[22] flex min-w-[180px] flex-col rounded-lg border border-[var(--tf-border)] bg-white p-1.5 shadow-[0_8px_24px_rgba(0,0,0,.12)] dark:border-[#39353e] dark:bg-[#26232a] max-[620px]:left-auto max-[620px]:right-full">
               {workspaces.filter((w) => w.id !== f.workspace_id).map((w) => <button className="rounded-md border-0 bg-transparent px-3 py-2.5 text-left text-sm text-[var(--tf-text)] hover:bg-[#f3f3f3] dark:text-[#e4e4e7] dark:hover:bg-[#37313b]" key={w.id} onClick={() => act(
                 () => call(`/api/inquiries/${f.id}/workspace`, send("PATCH", { workspace_id: w.id })), `Moved to ${w.name}`)}>{w.name}</button>)}
               {workspaces.length < 2 && <span className="px-3 py-2 text-xs text-[var(--tf-muted)]">Create another workspace first</span>}
@@ -305,16 +306,16 @@ export default function Dashboard() {
       <header className="flex h-[60px] items-center justify-between border-b border-[var(--tf-border)] bg-white px-5 dark:border-[#39353e] dark:bg-[#26232a] max-[700px]:h-auto max-[700px]:min-h-[60px] max-[700px]:gap-2">
         <div className="flex items-center gap-2">
           <div className="mr-0.5 h-10 w-[14px] rounded-[7px] bg-[var(--tf-purple)]" /><div className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--tf-purple)] text-lg text-white">{USER.workspace[0]}</div>
-          <div className="tf-org-wrap relative">
-            <button className="tf-ws-name inline-flex items-center whitespace-nowrap rounded-md border-0 bg-transparent px-1.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#303035]" onClick={() => setOrg(!org)}>
+          <div className="relative">
+            <button className="inline-flex items-center whitespace-nowrap rounded-md border-0 bg-transparent px-1.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#303035]" onClick={() => setOrg(!org)}>
               <span className="max-w-[150px] truncate sm:max-w-none">{USER.workspace}</span>
-              <svg className={"tf-chevron inline-block shrink-0" + (org ? " up" : "")} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <svg className={`ml-1.5 inline-block size-3.5 shrink-0 stroke-current [stroke-width:1.6] [stroke-linecap:round] [stroke-linejoin:round] transition-transform duration-150 ${org ? "rotate-180" : ""}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="m4 6 4 4 4-4" />
               </svg>
             </button>
             {org && (<>
               <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setOrg(false)} />
-              <div className="tf-org absolute left-0 top-[42px] z-[22] w-[280px] rounded-[18px] border border-[var(--tf-border)] bg-white p-4 text-[var(--tf-text)] shadow-[0_8px_30px_rgba(39,31,42,.14)] dark:border-[#39353e] dark:bg-[#26232a]">
+              <div className="absolute left-0 top-[42px] z-[22] w-[280px] rounded-[18px] border border-[var(--tf-border)] bg-white p-4 text-[var(--tf-text)] shadow-[0_8px_30px_rgba(39,31,42,.14)] dark:border-[#39353e] dark:bg-[#26232a]">
                 <h5 className="mb-2 mt-1 px-2 text-sm font-semibold">Organization</h5>
                 {["Admin settings", "Org members", "Plan & billing", "Developer apps"].map((x) => (
                   <button className="block w-full rounded-md border-0 bg-transparent px-2 py-2 text-left text-sm text-[var(--tf-text-2)] hover:bg-[#f5f3f5] dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" key={x} onClick={() => { setOrg(false); soon(x); }}>{x}</button>))}
@@ -330,11 +331,11 @@ export default function Dashboard() {
           <button className="rounded-md border-0 bg-transparent px-2.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#343039] max-[700px]:hidden" onClick={() => soon("Integrations")}>Integrations</button>
           <button className="rounded-md border-0 bg-transparent px-2.5 py-1.5 text-base text-[var(--tf-text)] hover:bg-[#efedef] dark:hover:bg-[#343039] max-[700px]:hidden" onClick={() => soon("Brand kit")}>Brand kit</button>
           <button className="rounded-md border-0 bg-[var(--tf-green)] px-4 py-2.5 text-base font-semibold text-white hover:bg-[#0d6758] max-[700px]:hidden" onClick={() => soon("Plans")}>View plans</button>
-          <div className="tf-help-wrap relative">
-            <button className="tf-round grid h-8 w-8 place-items-center rounded-full border border-[var(--tf-border-mid)] bg-white text-sm text-[var(--tf-text)] dark:bg-[#26232a]" aria-label="Help menu" onClick={() => setHelpOpen(!helpOpen)}>?</button>
+          <div className="relative">
+            <button className="grid h-8 w-8 place-items-center rounded-full border border-[var(--tf-border-mid)] bg-white text-sm text-[var(--tf-text)] dark:border-[#4b4550] dark:bg-[#26232a] dark:text-[#f2eff3]" aria-label="Help menu" onClick={() => setHelpOpen(!helpOpen)}>?</button>
             {helpOpen && (<>
               <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setHelpOpen(false)} />
-              <div className="tf-help-menu absolute right-0 top-[34px] z-[22] min-w-[166px] rounded-xl border border-[var(--tf-border)] bg-white p-1.5 shadow-[0_6px_20px_rgba(39,31,42,.14)] dark:border-[#39353e] dark:bg-[#26232a]">
+              <div className="absolute right-0 top-[34px] z-[22] min-w-[166px] rounded-xl border border-[var(--tf-border)] bg-white p-1.5 shadow-[0_6px_20px_rgba(39,31,42,.14)] dark:border-[#39353e] dark:bg-[#26232a]">
                 {["Help center", "Community", "Give Feedback", "Support"].map((item) =>
                   <button className="block w-full rounded-md border-0 bg-transparent px-2.5 py-2.5 text-left text-sm text-[var(--tf-text-2)] hover:bg-[#f5f3f5] dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" key={item} onClick={() => { setHelpOpen(false); soon(item); }}>{item}</button>)}
               </div>
@@ -345,7 +346,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className={`flex flex-1 flex-col overflow-hidden rounded-xl border border-[var(--tf-border)] bg-white dark:border-[#39353e] dark:bg-[#1d1b20] ${isZoomingOut ? "zoom-out-exit" : "zoom-out-enter"}`}>
+      <div className={`flex flex-1 flex-col overflow-hidden rounded-xl border border-[var(--tf-border)] bg-white dark:border-[#39353e] dark:bg-[#1d1b20] motion-reduce:animate-none ${isZoomingOut ? "animate-zoom-out-exit" : "animate-zoom-out-enter"}`}>
         <nav className="flex gap-1.5 border-b border-[var(--tf-border)] bg-white px-4 pt-4 max-[700px]:overflow-x-auto dark:border-[#39353e] dark:bg-[#1d1b20]">
           {TABS.map((t) => (
             <Fragment key={t}>{t === "Research Flow" && <span className="mx-2.5 mb-1.5 h-6 w-px self-center bg-[var(--tf-border)]" aria-hidden="true" />}<button className={`whitespace-nowrap rounded-t-md border-0 border-b-[3px] px-3.5 pb-3.5 pt-2.5 text-base ${t === "Forms" ? "border-[var(--tf-purple)] bg-[#ececec] font-semibold text-[#111] dark:border-[#b7a3bf] dark:bg-[#303035] dark:text-white" : "border-transparent bg-transparent text-[#444] hover:bg-[#ececec] dark:text-[#c4c4ca] dark:hover:bg-[#303035]"}`} onClick={() => t !== "Forms" && soon(t)}>
@@ -367,8 +368,8 @@ export default function Dashboard() {
               <div className="space-y-1 px-1 py-1">
                 {[1, 2].map((k) => (
                   <div key={k} className="flex h-10 items-center justify-between rounded-md px-3">
-                    <div className="h-4 w-24 rounded tf-shimmer" />
-                    <div className="h-4 w-4 rounded tf-shimmer" />
+                    <div className={`h-4 w-24 rounded ${SHIMMER}`} />
+                    <div className={`h-4 w-4 rounded ${SHIMMER}`} />
                   </div>
                 ))}
               </div>
@@ -466,11 +467,11 @@ export default function Dashboard() {
           <main className="min-w-0 overflow-auto bg-white p-8 text-[var(--tf-text)] max-[700px]:p-[22px_16px] dark:bg-[#1d1b20]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2"><h1 className="m-0 text-[30px] font-normal text-[var(--tf-text)]">{selectedWorkspace?.name || "My workspace"}</h1>
-                <div className="tf-menu-wrap relative z-20">
-                  <button className="tf-dots rounded-md border-0 bg-transparent px-2 py-1 text-xl tracking-[1px] text-[var(--tf-muted)] hover:bg-[#eee] dark:hover:bg-[#303035]" aria-label="Workspace options" onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}>···</button>
+                <div className="relative z-[22]">
+                  <button className="rounded-md border-0 bg-transparent px-2 py-1 text-xl tracking-[1px] text-[var(--tf-muted)] hover:bg-[#eee] dark:hover:bg-[#303035]" aria-label="Workspace options" onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}>···</button>
                   {workspaceMenuOpen && selectedWorkspace && (<>
                     <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setWorkspaceMenuOpen(false)} />
-                    <div className="tf-workspace-menu absolute left-0 top-[34px] z-[22] min-w-[160px] rounded-xl border border-[var(--tf-border)] bg-white p-1.5 shadow-[0_6px_20px_rgba(39,31,42,.14)] dark:border-[#39353e] dark:bg-[#26232a]">
+                    <div className="absolute left-0 top-[34px] z-[22] min-w-[160px] rounded-xl border border-[var(--tf-border)] bg-white p-1.5 shadow-[0_6px_20px_rgba(39,31,42,.14)] dark:border-[#39353e] dark:bg-[#26232a]">
                       <button className="block w-full rounded-md border-0 bg-transparent px-2.5 py-2.5 text-left text-sm text-[var(--tf-text-2)] hover:bg-[#f5f3f5] disabled:cursor-not-allowed disabled:opacity-45 dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" onClick={() => { setWorkspaceMenuOpen(false); setWorkspaceToRename(selectedWorkspace); setWorkspaceName(selectedWorkspace.name); }}>Rename</button>
                       <button className="block w-full rounded-md border-0 bg-transparent px-2.5 py-2.5 text-left text-sm text-[var(--tf-text-2)] hover:bg-[#f5f3f5] disabled:cursor-not-allowed disabled:opacity-45 dark:text-[#d5cfd8] dark:hover:bg-[#37313b]" disabled={selectedWorkspace.is_private} onClick={() => { setWorkspaceMenuOpen(false); setWorkspaceToRemove({ workspace: selectedWorkspace, action: "leave" }); }}>Leave</button>
                       <button className="block w-full rounded-md border-0 bg-transparent px-2.5 py-2.5 text-left text-sm text-[#b43e32] hover:bg-[#f5f3f5] disabled:cursor-not-allowed disabled:opacity-45 dark:hover:bg-[#37313b]" disabled={selectedWorkspace.is_private} onClick={() => { setWorkspaceMenuOpen(false); setWorkspaceToRemove({ workspace: selectedWorkspace, action: "delete" }); }}>Delete</button>
@@ -498,7 +499,7 @@ export default function Dashboard() {
             </div>
 
             {rows === null && view === "list" && (
-              <div className="zoom-in-enter">
+              <div className="animate-zoom-in-enter motion-reduce:animate-none">
                 <div className="grid grid-cols-[minmax(220px,1fr)_100px_110px_110px_130px_110px_44px] items-center gap-1.5 px-4 pb-3.5 text-base text-[var(--tf-muted)] dark:text-[#aaa2ae] max-[900px]:grid-cols-[1fr_44px]">
                   <span /><span className="max-[900px]:hidden">Contacts</span><span className="max-[900px]:hidden">Responses</span><span className="max-[900px]:hidden">Completed</span><span className="max-[900px]:hidden">Updated</span><span className="max-[900px]:hidden">Integrations</span><span />
                 </div>
@@ -508,40 +509,40 @@ export default function Dashboard() {
                     className="mb-2 grid h-[60px] grid-cols-[minmax(220px,1fr)_100px_110px_110px_130px_110px_44px] items-center gap-1.5 rounded-xl border border-[var(--tf-border)] bg-white px-4 dark:border-[#39353e] dark:bg-[#26232a] max-[900px]:grid-cols-[1fr_44px] max-[900px]:[&>*:not(:first-child):not(:last-child)]:hidden"
                   >
                     <div className="flex min-w-0 items-center gap-2.5 overflow-hidden">
-                      <div className="h-10 w-10 shrink-0 rounded-lg tf-shimmer" />
-                      <div className="h-4 w-32 rounded-md tf-shimmer" />
-                      <div className="h-4 w-14 rounded-[10px] tf-shimmer" />
+                      <div className={`h-10 w-10 shrink-0 rounded-lg ${SHIMMER}`} />
+                      <div className={`h-4 w-32 rounded-md ${SHIMMER}`} />
+                      <div className={`h-4 w-14 rounded-[10px] ${SHIMMER}`} />
                     </div>
-                    <div className="h-3.5 w-4 rounded tf-shimmer" />
-                    <div className="h-3.5 w-6 rounded tf-shimmer" />
-                    <div className="h-3.5 w-6 rounded tf-shimmer" />
-                    <div className="h-3.5 w-20 rounded tf-shimmer" />
-                    <div className="h-6 w-6 rounded tf-shimmer" />
-                    <div className="h-4 w-4 rounded tf-shimmer" />
+                    <div className={`h-3.5 w-4 rounded ${SHIMMER}`} />
+                    <div className={`h-3.5 w-6 rounded ${SHIMMER}`} />
+                    <div className={`h-3.5 w-6 rounded ${SHIMMER}`} />
+                    <div className={`h-3.5 w-20 rounded ${SHIMMER}`} />
+                    <div className={`h-6 w-6 rounded ${SHIMMER}`} />
+                    <div className={`h-4 w-4 rounded ${SHIMMER}`} />
                   </div>
                 ))}
               </div>
             )}
 
             {rows === null && view === "grid" && (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3.5 max-[620px]:grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] zoom-in-enter">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3.5 max-[620px]:grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] animate-zoom-in-enter motion-reduce:animate-none">
                 {[1, 2, 3, 4].map((k) => (
                   <div
                     key={k}
                     className="flex min-h-[136px] flex-col justify-between rounded-xl border border-[var(--tf-border)] bg-white p-5 dark:border-[#39353e] dark:bg-[#26232a]"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="h-5 w-32 rounded tf-shimmer" />
-                      <div className="h-4 w-4 rounded tf-shimmer" />
+                      <div className={`h-5 w-32 rounded ${SHIMMER}`} />
+                      <div className={`h-4 w-4 rounded ${SHIMMER}`} />
                     </div>
-                    <div className="h-7 w-7 rounded-[7px] tf-shimmer" />
+                    <div className={`h-7 w-7 rounded-[7px] ${SHIMMER}`} />
                   </div>
                 ))}
               </div>
             )}
             {rows && shown.length === 0 && <p className="text-[var(--tf-muted)]">No forms found.</p>}
 
-            {view === "list" && shown.length > 0 && (<div key={`list-${selectedWorkspaceId}`} className="zoom-in-enter">
+            {view === "list" && shown.length > 0 && (<div key={`list-${selectedWorkspaceId}`} className="animate-zoom-in-enter motion-reduce:animate-none">
               <div className="grid grid-cols-[minmax(220px,1fr)_100px_110px_110px_130px_110px_44px] items-center gap-1.5 px-4 pb-3.5 text-base text-[var(--tf-muted)] dark:text-[#aaa2ae] max-[900px]:grid-cols-[1fr_44px]">
                 <span /><span className="max-[900px]:hidden">Contacts</span><span className="max-[900px]:hidden">Responses</span><span className="max-[900px]:hidden">Completed</span><span className="max-[900px]:hidden">Updated</span><span className="max-[900px]:hidden">Integrations</span><span /></div>
               {shown.map((f) => (
@@ -563,7 +564,7 @@ export default function Dashboard() {
             </div>)}
 
             {view === "grid" && (
-              <div key={`grid-${selectedWorkspaceId}`} className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3.5 max-[620px]:grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] zoom-in-enter">
+              <div key={`grid-${selectedWorkspaceId}`} className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3.5 max-[620px]:grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] animate-zoom-in-enter motion-reduce:animate-none">
                 {shown.map((f) => (
                   <div className={`flex min-h-[136px] cursor-pointer flex-col rounded-xl border border-[var(--tf-border)] bg-white px-5 shadow-none transition-[transform,box-shadow,border-color] duration-150 hover:-translate-y-0.5 hover:border-[var(--tf-border-mid)] hover:shadow-[0_3px_10px_rgba(39,31,42,.05)] dark:border-[#39353e] dark:bg-[#26232a] ${draggingId === f.id ? "opacity-50 cursor-grabbing" : ""}`} key={f.id}
                     draggable onDragStart={(event) => startFormDrag(event, f)} onDragEnd={() => { setDraggingId(null); setDragTargetId(null); }}

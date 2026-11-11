@@ -1,3 +1,5 @@
+import { SHIMMER } from "@/lib/styles";
+
 export default function Loading() {
   return (
     <div className="flex min-h-screen flex-col bg-[var(--tf-panel-bg)] px-[18px] pb-[18px] text-[var(--tf-text)] max-[700px]:px-[10px] max-[700px]:pb-[10px]">
@@ -8,7 +10,7 @@ export default function Loading() {
           <div className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--tf-purple)] text-lg text-white font-medium">
             M
           </div>
-          <div className="h-5 w-28 rounded-md tf-shimmer" />
+          <div className={`h-5 w-28 rounded-md ${SHIMMER}`} />
         </div>
 
         <nav className="flex items-center gap-6 max-[700px]:hidden">
@@ -20,8 +22,8 @@ export default function Loading() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <div className="h-9 w-24 rounded-md tf-shimmer" />
-          <div className="h-8 w-8 rounded-full tf-shimmer" />
+          <div className={`h-9 w-24 rounded-md ${SHIMMER}`} />
+          <div className={`h-8 w-8 rounded-full ${SHIMMER}`} />
         </div>
       </header>
 
@@ -33,12 +35,12 @@ export default function Loading() {
 
           <div className="mt-3.5 flex h-11 items-center gap-2.5 rounded-md border-y border-[var(--tf-border)] px-3">
             <span className="text-[var(--tf-muted)]">⌕</span>
-            <div className="h-4 w-20 rounded tf-shimmer" />
+            <div className={`h-4 w-20 rounded ${SHIMMER}`} />
           </div>
 
           <div className="flex items-center justify-between px-3 pb-2 pt-[18px]">
             <span className="text-sm text-[var(--tf-muted)]">▦ Workspaces</span>
-            <div className="h-8 w-8 rounded-md tf-shimmer" />
+            <div className={`h-8 w-8 rounded-md ${SHIMMER}`} />
           </div>
 
           <div className="px-3.5 py-3 text-sm font-semibold text-[var(--tf-text)]">Private</div>
@@ -46,8 +48,8 @@ export default function Loading() {
           <div className="space-y-1 px-1">
             {[1, 2].map((k) => (
               <div key={k} className="flex h-10 items-center justify-between rounded-md px-3">
-                <div className="h-4 w-24 rounded tf-shimmer" />
-                <div className="h-4 w-5 rounded tf-shimmer" />
+                <div className={`h-4 w-24 rounded ${SHIMMER}`} />
+                <div className={`h-4 w-5 rounded ${SHIMMER}`} />
               </div>
             ))}
           </div>
@@ -59,11 +61,11 @@ export default function Loading() {
             <div className="my-2 h-1.5 w-full rounded-sm bg-neutral-200 dark:bg-neutral-800">
               <div className="h-full w-1/4 rounded-sm bg-[var(--tf-purple)]" />
             </div>
-            <div className="h-5 w-16 rounded tf-shimmer" />
+            <div className={`h-5 w-16 rounded ${SHIMMER}`} />
           </div>
 
           <div className="mt-3.5 flex min-h-12 items-center rounded-lg border border-[#dcd5df] bg-white p-2 dark:border-[#39353e] dark:bg-[#19191c]">
-            <div className="h-4 w-28 rounded tf-shimmer" />
+            <div className={`h-4 w-28 rounded ${SHIMMER}`} />
           </div>
         </aside>
 
@@ -72,12 +74,12 @@ export default function Loading() {
           {/* Header Row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-44 rounded-lg tf-shimmer" />
-              <div className="h-7 w-16 rounded-md tf-shimmer" />
+              <div className={`h-8 w-44 rounded-lg ${SHIMMER}`} />
+              <div className={`h-7 w-16 rounded-md ${SHIMMER}`} />
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-9 w-32 rounded-lg tf-shimmer" />
-              <div className="h-9 w-24 rounded-lg tf-shimmer" />
+              <div className={`h-9 w-32 rounded-lg ${SHIMMER}`} />
+              <div className={`h-9 w-24 rounded-lg ${SHIMMER}`} />
             </div>
           </div>
 
@@ -90,11 +92,11 @@ export default function Loading() {
                 key={idx}
                 className="flex items-start gap-4 rounded-[10px] bg-[#faf8fa] p-5 dark:bg-[#26232a]"
               >
-                <div className="h-10 w-10 flex-none rounded-lg tf-shimmer" />
+                <div className={`h-10 w-10 flex-none rounded-lg ${SHIMMER}`} />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-3/4 rounded tf-shimmer" />
-                  <div className="h-4 w-1/2 rounded tf-shimmer" />
-                  <div className="h-7 w-24 rounded-md tf-shimmer" />
+                  <div className={`h-4 w-3/4 rounded ${SHIMMER}`} />
+                  <div className={`h-4 w-1/2 rounded ${SHIMMER}`} />
+                  <div className={`h-7 w-24 rounded-md ${SHIMMER}`} />
                 </div>
               </div>
             ))}
@@ -117,16 +119,16 @@ export default function Loading() {
               className="mb-2 grid h-[60px] grid-cols-[minmax(220px,1fr)_100px_110px_110px_130px_110px_44px] items-center gap-1.5 rounded-xl border border-[var(--tf-border)] bg-white px-4 dark:border-[#39353e] dark:bg-[#26232a] max-[900px]:grid-cols-[1fr_44px] max-[900px]:[&>*:not(:first-child):not(:last-child)]:hidden"
             >
               <div className="flex min-w-0 items-center gap-2.5 overflow-hidden">
-                <div className="h-10 w-10 shrink-0 rounded-lg tf-shimmer" />
-                <div className="h-4 w-32 rounded-md tf-shimmer" />
-                <div className="h-4 w-14 rounded-[10px] tf-shimmer" />
+                <div className={`h-10 w-10 shrink-0 rounded-lg ${SHIMMER}`} />
+                <div className={`h-4 w-32 rounded-md ${SHIMMER}`} />
+                <div className={`h-4 w-14 rounded-[10px] ${SHIMMER}`} />
               </div>
-              <div className="h-3.5 w-4 rounded tf-shimmer" />
-              <div className="h-3.5 w-6 rounded tf-shimmer" />
-              <div className="h-3.5 w-6 rounded tf-shimmer" />
-              <div className="h-3.5 w-20 rounded tf-shimmer" />
-              <div className="h-6 w-6 rounded tf-shimmer" />
-              <div className="h-4 w-4 rounded tf-shimmer" />
+              <div className={`h-3.5 w-4 rounded ${SHIMMER}`} />
+              <div className={`h-3.5 w-6 rounded ${SHIMMER}`} />
+              <div className={`h-3.5 w-6 rounded ${SHIMMER}`} />
+              <div className={`h-3.5 w-20 rounded ${SHIMMER}`} />
+              <div className={`h-6 w-6 rounded ${SHIMMER}`} />
+              <div className={`h-4 w-4 rounded ${SHIMMER}`} />
             </div>
           ))}
         </main>

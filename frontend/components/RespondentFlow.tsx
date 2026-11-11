@@ -141,14 +141,14 @@ export default function RespondentFlow({ form, questions, onSubmit }: Respondent
   if (isSubmitted) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-white px-6 text-center dark:bg-[#202024]">
-        <div className="from-above max-w-lg">
-          <div className="text-cascade-1 mb-4 inline-flex size-14 items-center justify-center rounded-full bg-[#e8f7f0] text-2xl text-[#087663] dark:bg-[#1f372d] dark:text-[#52c499]">
+        <div className="animate-from-above max-w-lg">
+          <div className="animate-text-cascade-1 mb-4 inline-flex size-14 items-center justify-center rounded-full bg-[#e8f7f0] text-2xl text-[#087663] dark:bg-[#1f372d] dark:text-[#52c499]">
             ✓
           </div>
-          <h1 className="text-cascade-2 text-[clamp(26px,3.5vw,36px)] font-normal text-[#262627] dark:text-[#f2eff3]">
+          <h1 className="animate-text-cascade-2 text-[clamp(26px,3.5vw,36px)] font-normal text-[#262627] dark:text-[#f2eff3]">
             Thanks for completing the form!
           </h1>
-          <p className="text-cascade-3 mt-3 text-base text-[#737373] dark:text-[#a1a1aa]">
+          <p className="animate-text-cascade-3 mt-3 text-base text-[#737373] dark:text-[#a1a1aa]">
             Your responses have been recorded successfully.
           </p>
         </div>
@@ -168,7 +168,7 @@ export default function RespondentFlow({ form, questions, onSubmit }: Respondent
   const progressPct = ((currentIndex + 1) / questions.length) * 100;
 
   return (
-    <div className="runner relative flex h-screen w-full flex-col overflow-hidden bg-white text-[#262627] dark:bg-[#202024] dark:text-[#f4f4f5]">
+    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-white text-[#262627] dark:bg-[#202024] dark:text-[#f4f4f5]">
       {/* Top Progress Bar */}
       <div className="absolute inset-x-0 top-0 z-[10] h-1 bg-[#ebebeb] dark:bg-[#39393e]">
         <div
@@ -178,10 +178,10 @@ export default function RespondentFlow({ form, questions, onSubmit }: Respondent
       </div>
 
       {/* Center Question Canvas */}
-      <div className="stage flex flex-1 items-center justify-center px-6 py-10">
-        <div key={currentQ.id} className="from-above w-full max-w-2xl">
-          <h2 className="q text-cascade-1 m-0 mb-1 flex items-start gap-2.5 text-[clamp(22px,3.2vw,28px)] font-normal leading-[1.3] text-[#262627] dark:text-[#f2eff3]">
-            <span className="tf-badge-num inline-flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-[4px] bg-[#262627] px-1.5 text-[12px] font-bold leading-none text-white shadow-sm dark:bg-[#39343d] dark:text-[#f2eff3]">
+      <div className="flex flex-1 items-center justify-center px-6 py-10">
+        <div key={currentQ.id} className="animate-from-above w-full max-w-2xl">
+          <h2 className="animate-text-cascade-1 m-0 mb-1 flex items-start gap-2.5 text-[clamp(22px,3.2vw,28px)] font-normal leading-[1.3] text-[#262627] dark:text-[#f2eff3]">
+            <span className="inline-flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-[4px] bg-[#262627] px-1.5 text-[12px] font-bold leading-none text-white shadow-sm dark:bg-[#39343d] dark:text-[#f2eff3]">
               {currentIndex + 1}
             </span>
             <span className="flex-1">
@@ -191,12 +191,12 @@ export default function RespondentFlow({ form, questions, onSubmit }: Respondent
           </h2>
 
           {currentQ.hint && (
-            <p className="hint text-cascade-2 mb-4 mt-1 text-[15px] italic text-[#737373] dark:text-[#a1a1aa]">
+            <p className="animate-text-cascade-2 mb-4 mt-1 text-[15px] italic text-[#737373] dark:text-[#a1a1aa]">
               {currentQ.hint}
             </p>
           )}
 
-          <div className="text-cascade-3 mt-4">
+          <div className="animate-text-cascade-3 mt-4">
             {currentQ.question_type === "short_text" && (
               <input
                 ref={inputRef as React.RefObject<HTMLInputElement>}
@@ -316,7 +316,7 @@ export default function RespondentFlow({ form, questions, onSubmit }: Respondent
             {error && <div className={ERR}>⚠ {error}</div>}
           </div>
 
-          <div className="actions text-cascade-4 mt-8 flex items-center gap-3.5">
+          <div className="animate-text-cascade-4 mt-8 flex items-center gap-3.5">
             <button
               onClick={handleNext}
               disabled={isSubmitting}
@@ -324,7 +324,7 @@ export default function RespondentFlow({ form, questions, onSubmit }: Respondent
             >
               {currentIndex === questions.length - 1 ? "Submit" : "OK ✓"}
             </button>
-            <span className="tip text-xs text-[#767676] dark:text-[#a1a1aa]">
+            <span className="text-xs text-[#767676] dark:text-[#a1a1aa]">
               {currentIndex === questions.length - 1 ? (
                 <>press <b>Ctrl + Enter ↵</b></>
               ) : (
@@ -336,7 +336,7 @@ export default function RespondentFlow({ form, questions, onSubmit }: Respondent
       </div>
 
       {/* Bottom Right Controls (Navigation arrows + Powered by Typeform badge) */}
-      <div className="nav absolute bottom-5 right-5 flex items-center gap-2">
+      <div className="absolute bottom-5 right-5 flex items-center gap-2">
         <div className="flex overflow-hidden rounded-md shadow-sm">
           <button
             className="flex h-8 w-8 items-center justify-center border-0 bg-[#d4d4d8] text-sm text-[#444] transition-colors hover:bg-[#c4c4c8] disabled:opacity-40 dark:bg-[#38383e] dark:text-[#d5cfd8] dark:hover:bg-[#484852]"

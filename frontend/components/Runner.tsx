@@ -5,7 +5,7 @@ import { errorMessage, isApiError } from "@/lib/api";
 import Dropdown from "@/components/Dropdown";
 import PhoneField from "@/components/PhoneField";
 import { buildSteps, holdFor } from "@/lib/steps";
-import { ERR, LINE } from "@/lib/styles";
+import { ERR, LINE, LINE_MOBILE } from "@/lib/styles";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE = /^[+()\d.\-\s]{7,25}$/;
@@ -103,6 +103,7 @@ export default function Runner({ inquiry, onSubmit, startAt = 0, preview, isMobi
   const [errs, setErrs] = useState<Record<number, string>>({});
   const [gerr, setGerr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const selectRef = useRef<HTMLButtonElement>(null);
@@ -157,8 +158,9 @@ export default function Runner({ inquiry, onSubmit, startAt = 0, preview, isMobi
       const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
       if (e.key === "Enter") {
         if (tag === "TEXTAREA" && !(e.metaKey || e.ctrlKey)) return;
-        if (preview && (tag === "INPUT" || tag === "TEXTAREA") && !(e.target as HTMLElement).closest(".runner")) return;
-        if (!(e.target as HTMLElement).closest(".runner") && typing) return;
+        const insideRunner = containerRef.current?.contains(e.target as Node) ?? false;
+        if (preview && (tag === "INPUT" || tag === "TEXTAREA") && !insideRunner) return;
+        if (!insideRunner && typing) return;
         e.preventDefault(); advance();
       } else if (e.key === "ArrowDown" && !typing) { e.preventDefault(); advance(); }
       else if (e.key === "ArrowUp" && !typing) { e.preventDefault(); back(); }
@@ -191,25 +193,26 @@ export default function Runner({ inquiry, onSubmit, startAt = 0, preview, isMobi
     const inRef = first ? inputRef : undefined;
     const taRef = first ? textareaRef : undefined;
     const selRef = first ? selectRef : undefined;
+    const lineClass = isMobileView ? LINE_MOBILE : LINE;
     switch (q.kind) {
       case "short_text": case "email": case "number":
-        return <input ref={inRef} className={LINE} value={val} onChange={(e) => set(e.target.value)}
+        return <input ref={inRef} className={lineClass} value={val} onChange={(e) => set(e.target.value)}
           placeholder={holdFor(q)} type={q.kind === "number" ? "number" : q.kind === "email" ? "email" : "text"} />;
       case "long_text":
-        return <textarea ref={taRef} className={LINE} rows={3} value={val} onChange={(e) => set(e.target.value)}
+        return <textarea ref={taRef} className={lineClass} rows={3} value={val} onChange={(e) => set(e.target.value)}
           placeholder="Type your answer here…" />;
       case "address":
-        return <textarea ref={taRef} className={LINE} rows={3} value={val} onChange={(e) => set(e.target.value)}
+        return <textarea ref={taRef} className={lineClass} rows={3} value={val} onChange={(e) => set(e.target.value)}
           placeholder="Enter your address…" />;
       case "phone":
-        return <PhoneField inputRef={inRef} value={val} onChange={set} />;
+        return <PhoneField inputRef={inRef} value={val} onChange={set} mobile={isMobileView} />;
       case "url": case "date":
-        return <input ref={inRef} className={LINE} value={val} onChange={(e) => set(e.target.value)}
+        return <input ref={inRef} className={lineClass} value={val} onChange={(e) => set(e.target.value)}
           placeholder={q.kind === "url" ? "https://example.com" : undefined}
           type={q.kind === "url" ? "url" : "date"} />;
       case "contact_info": {
         const contact = stringRecordAnswer(val);
-        return <div className="contact-fields mt-[18px] grid max-w-[480px] gap-3">
+        return <div className="mt-[18px] grid max-w-[480px] gap-3">
           <label className="grid gap-1.5 text-sm text-[var(--tf-text-2)] dark:text-[#d5cfd8]">Name<input className="min-w-0 rounded-md border border-[var(--tf-border-mid)] bg-[var(--tf-white)] p-2.5 text-[var(--tf-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" ref={inRef} autoComplete="name" value={contact.name || ""} onChange={(e) => updateContact("name", e.target.value)} /></label>
           <label className="grid gap-1.5 text-sm text-[var(--tf-text-2)] dark:text-[#d5cfd8]">Email<input className="min-w-0 rounded-md border border-[var(--tf-border-mid)] bg-[var(--tf-white)] p-2.5 text-[var(--tf-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" type="email" autoComplete="email" value={contact.email || ""} onChange={(e) => updateContact("email", e.target.value)} /></label>
           <label className="grid gap-1.5 text-sm text-[var(--tf-text-2)] dark:text-[#d5cfd8]">Phone<input className="min-w-0 rounded-md border border-[var(--tf-border-mid)] bg-[var(--tf-white)] p-2.5 text-[var(--tf-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" type="tel" autoComplete="tel" value={contact.phone || ""} onChange={(e) => updateContact("phone", e.target.value)} /></label>
@@ -226,25 +229,25 @@ export default function Runner({ inquiry, onSubmit, startAt = 0, preview, isMobi
         />;
       case "choice": case "yes_no": {
         const opts = q.kind === "yes_no" ? ["yes", "no"] : q.choices;
-        return <div className="choices mt-[18px] flex max-w-[420px] flex-col gap-2">{opts.map((o, k) => (
-          <button key={o} className={`choice flex items-center gap-2.5 rounded border border-[var(--accent)] px-3 py-2 text-left text-lg text-[var(--accent)] transition-colors hover:bg-[color-mix(in_srgb,var(--accent)_18%,white)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:hover:bg-[color-mix(in_srgb,var(--accent)_22%,#202024)] ${val === o ? "on bg-[var(--accent)] text-white dark:text-[#171719]" : "bg-[color-mix(in_srgb,var(--accent)_8%,white)] dark:bg-[color-mix(in_srgb,var(--accent)_12%,#202024)]"}`} onClick={() => choose(q, o)}>
-            <span className="key grid size-6 shrink-0 place-items-center rounded border border-current text-xs">{LETTERS[k]}</span><span>{q.kind === "yes_no" ? o[0].toUpperCase() + o.slice(1) : o}</span>
+        return <div className="mt-[18px] flex max-w-[420px] flex-col gap-2">{opts.map((o, k) => (
+          <button key={o} className={`flex items-center gap-2.5 rounded-lg border border-[var(--accent)] px-3 py-2 text-left text-lg transition-colors hover:bg-[color-mix(in_srgb,var(--accent)_18%,white)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:hover:bg-[color-mix(in_srgb,var(--accent)_22%,#202024)] ${val === o ? "bg-[var(--accent)] text-white dark:text-[#171719]" : "bg-[color-mix(in_srgb,var(--accent)_8%,white)] text-[var(--accent)] dark:bg-[color-mix(in_srgb,var(--accent)_12%,#202024)]"}`} onClick={() => choose(q, o)}>
+            <span className="grid size-6 shrink-0 place-items-center rounded border border-current text-xs">{LETTERS[k]}</span><span>{q.kind === "yes_no" ? o[0].toUpperCase() + o.slice(1) : o}</span>
           </button>))}</div>;
       }
       case "checkbox": {
         const selected = stringArrayAnswer(val);
-        return <div className="multi-choices mt-4 flex max-w-[460px] flex-col gap-2">{q.choices.map((option) => (
+        return <div className="mt-4 flex max-w-[460px] flex-col gap-2">{q.choices.map((option) => (
           <label key={option} className="flex cursor-pointer items-center gap-2.5 rounded-[7px] border border-[var(--tf-border-mid)] px-3 py-2.5 text-[var(--tf-text)] dark:border-[var(--tf-border)] dark:bg-[#26232a]"><input className="size-4 accent-[var(--accent)]" type="checkbox" checked={selected.includes(option)} onChange={() => toggleOption(option)} />{option}</label>
         ))}</div>;
       }
       case "legal":
-        return <label className="legal-consent flex cursor-pointer items-center gap-2.5 rounded-[7px] border border-[var(--tf-border-mid)] px-3 py-2.5 text-[var(--tf-text)] dark:border-[var(--tf-border)] dark:bg-[#26232a]"><input className="size-4 accent-[var(--accent)]" ref={inRef} type="checkbox" checked={val === "yes"} onChange={(e) => set(e.target.checked ? "yes" : "")} />
+        return <label className="flex cursor-pointer items-center gap-2.5 rounded-[7px] border border-[var(--tf-border-mid)] px-3 py-2.5 text-[var(--tf-text)] dark:border-[var(--tf-border)] dark:bg-[#26232a]"><input className="size-4 accent-[var(--accent)]" ref={inRef} type="checkbox" checked={val === "yes"} onChange={(e) => set(e.target.checked ? "yes" : "")} />
           I agree to the terms and conditions.</label>;
       case "nps": case "opinion_scale": {
         const start = q.kind === "nps" ? 0 : 1;
-        return <div className="scale-choices mt-[18px] flex flex-wrap gap-2" role="group" aria-label={q.kind === "nps" ? "Score from 0 to 10" : "Score from 1 to 10"}>
+        return <div className="mt-[18px] flex flex-wrap gap-2" role="group" aria-label={q.kind === "nps" ? "Score from 0 to 10" : "Score from 1 to 10"}>
           {Array.from({ length: 11 - start }, (_, i) => String(i + start)).map((score) => (
-            <button key={score} className={`h-10 min-w-10 rounded-[7px] border border-[var(--tf-border-mid)] bg-[var(--tf-white)] font-semibold text-[var(--tf-text)] hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-[var(--tf-border)] dark:bg-[#211f25] dark:text-[var(--tf-text)] ${val === score ? "on border-[var(--accent)] bg-[var(--accent)] text-white" : ""}`} onClick={() => choose(q, score)}>{score}</button>
+            <button key={score} className={`h-10 min-w-10 rounded-[7px] border font-semibold hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${val === score ? "border-[var(--accent)] bg-[var(--accent)] text-white" : "border-[var(--tf-border-mid)] bg-[var(--tf-white)] text-[var(--tf-text)] dark:border-[var(--tf-border)] dark:bg-[#211f25] dark:text-[var(--tf-text)]"}`} onClick={() => choose(q, score)}>{score}</button>
           ))}
         </div>;
       }
@@ -255,11 +258,11 @@ export default function Runner({ inquiry, onSubmit, startAt = 0, preview, isMobi
           [next[index], next[index + offset]] = [next[index + offset], next[index]];
           set(JSON.stringify(next));
         };
-        return <div className="ranking-field">
-          <div className="multi-choices mt-4 flex max-w-[460px] flex-col gap-2">{q.choices.map((option) => (
+        return <div>
+          <div className="mt-4 flex max-w-[460px] flex-col gap-2">{q.choices.map((option) => (
             <label key={option} className="flex cursor-pointer items-center gap-2.5 rounded-[7px] border border-[var(--tf-border-mid)] px-3 py-2.5 text-[var(--tf-text)] dark:border-[var(--tf-border)] dark:bg-[#26232a]"><input className="size-4 accent-[var(--accent)]" type="checkbox" checked={ranked.includes(option)} onChange={() => toggleOption(option)} />{option}</label>
           ))}</div>
-          {ranked.length > 0 && <ol>{ranked.map((option, index) => (
+          {ranked.length > 0 && <ol className="mt-3 max-w-[460px] list-decimal pl-7">{ranked.map((option, index) => (
             <li key={option} className="flex items-center gap-1.5 py-1 text-[var(--tf-text)] dark:text-[var(--tf-text)]"><span className="flex-1">{option}</span>
               <button className="size-8 rounded-md border border-[var(--tf-border-mid)] bg-[var(--tf-white)] text-[var(--tf-text)] hover:bg-[var(--tf-panel-bg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:border-[var(--tf-border)] dark:bg-[#211f25]" aria-label={`Move ${option} up`} disabled={index === 0} onClick={() => move(index, -1)}>↑</button>
               <button className="size-8 rounded-md border border-[var(--tf-border-mid)] bg-[var(--tf-white)] text-[var(--tf-text)] hover:bg-[var(--tf-panel-bg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:border-[var(--tf-border)] dark:bg-[#211f25]" aria-label={`Move ${option} down`} disabled={index === ranked.length - 1} onClick={() => move(index, 1)}>↓</button>
@@ -269,7 +272,7 @@ export default function Runner({ inquiry, onSubmit, startAt = 0, preview, isMobi
       }
       case "matrix": {
         const answers = stringRecordAnswer(val);
-        return <div className="matrix-field mt-[18px] grid gap-2">{q.choices.map((row) => (
+        return <div className="mt-[18px] grid gap-2">{q.choices.map((row) => (
           <label key={row} className="grid grid-cols-[minmax(100px,1fr)_minmax(100px,160px)] items-center gap-3 text-[var(--tf-text)] max-[480px]:grid-cols-1">
             <span>{row}</span><Dropdown
               ariaLabel={`${row} response`}
@@ -283,46 +286,46 @@ export default function Runner({ inquiry, onSubmit, startAt = 0, preview, isMobi
         ))}</div>;
       }
       case "rating":
-        return <div className="stars mt-[18px] flex gap-2">{[1, 2, 3, 4, 5].map((s) => (
-          <button key={s} className={`star border-0 bg-transparent text-[38px] text-[#ccc] transition hover:scale-110 hover:text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${Number(val) >= s ? "on scale-110 text-[var(--accent)]" : ""}`} onClick={() => choose(q, String(s))}>★</button>))}</div>;
+        return <div className="mt-[18px] flex gap-2">{[1, 2, 3, 4, 5].map((s) => (
+          <button key={s} className={`border-0 bg-transparent text-[38px] transition hover:scale-110 hover:text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${Number(val) >= s ? "scale-110 text-[var(--accent)]" : "text-[#ccc]"}`} onClick={() => choose(q, String(s))}>★</button>))}</div>;
     }
   };
 
   return (
-    <div className={`runner relative h-full w-full overflow-y-auto overflow-x-hidden bg-white text-[#262627] dark:bg-[#202024] dark:text-[#f4f4f5] ${isMobileView ? "mobile-runner" : ""}`} style={{ "--accent": inquiry.accent } as AccentStyle}>
-      <div className="progress sticky top-0 z-[2] h-1 w-full bg-[#ebebeb] dark:bg-[#39393e]">
-        <div className="h-full bg-[#262627] transition-[width] duration-[400ms] ease-in-out dark:bg-[#8c8294]" style={{ width: `${n ? (Math.min(i, n) / n) * 100 : 0}%` }} />
+    <div ref={containerRef} className="relative h-full w-full overflow-y-auto overflow-x-hidden bg-white text-[#262627] dark:bg-[#202024] dark:text-[#f4f4f5]" style={{ "--accent": inquiry.accent } as AccentStyle}>
+      <div className="sticky top-0 z-[2] h-1 w-full bg-[#ebebeb] dark:bg-[#39393e]">
+        <div className="h-full bg-[var(--accent)] transition-[width] duration-[400ms] ease-in-out" style={{ width: `${n ? (Math.min(i, n) / n) * 100 : 0}%` }} />
       </div>
-      <div className={`stage flex min-h-full ${isMobileView ? "flex-col justify-between px-5 pt-7 pb-6" : "items-center justify-center px-6 py-10 max-[600px]:px-5 max-[600px]:py-7"}`}>
-        {n === 0 && <div className="slide w-full"><h2 className="q m-0 mb-2 text-[clamp(22px,3.2vw,30px)] font-normal leading-tight text-[var(--tf-text)]">Add your first question to see it here</h2></div>}
+      <div className={`flex min-h-full ${isMobileView ? "flex-col justify-between px-5 pt-7 pb-6" : "items-center justify-center px-6 py-10 max-[600px]:px-5 max-[600px]:py-7"}`}>
+        {n === 0 && <div className="w-full max-w-[680px]"><h2 className="m-0 mb-2 text-[clamp(22px,3.2vw,30px)] font-normal leading-tight text-[var(--tf-text)]">Add your first question to see it here</h2></div>}
         {n > 0 && step && (
-          <div key={i} className={`slide from-above w-full ${isMobileView ? "flex flex-col flex-1 justify-between" : ""}`}>
+          <div key={i} className={`animate-from-above w-full max-w-[680px] ${isMobileView ? "flex flex-col flex-1 justify-between" : ""}`}>
             <div className={isMobileView ? "my-auto w-full min-w-0" : "min-w-0"}>
-              <h2 className={`q text-cascade-1 m-0 mb-1 flex items-start gap-2.5 font-normal leading-[1.3] text-[#262627] dark:text-[#f2eff3] ${isMobileView ? "text-xl" : "text-[clamp(22px,3.2vw,28px)]"}`}>
-                <span className="tf-badge-num inline-flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-[4px] bg-[#262627] px-1.5 text-[12px] font-bold leading-none text-white shadow-sm dark:bg-[#39343d] dark:text-[#f2eff3]">{i + 1}</span>
+              <h2 className={`animate-text-cascade-1 m-0 mb-1 flex items-start gap-2.5 font-normal leading-[1.3] text-[#262627] dark:text-[#f2eff3] ${isMobileView ? "text-xl" : "text-[clamp(22px,3.2vw,28px)]"}`}>
+                <span className="inline-flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-[4px] bg-[#262627] px-1.5 text-[12px] font-bold leading-none text-white shadow-sm dark:bg-[#39343d] dark:text-[#f2eff3]">{i + 1}</span>
                 <span className="min-w-0 flex-1 break-words">
                   {page ? page.title || "Page" : p?.label || "..."}
-                  {p?.mandatory && <span className="req text-[#e04f4f]"> *</span>}
+                  {p?.mandatory && <span className="text-[#e04f4f]"> *</span>}
                 </span>
               </h2>
               {((page ? page.hint : p?.hint) || preview) && (
-                <p className={`hint text-cascade-2 mt-1 italic text-[#737373] dark:text-[#a1a1aa] ${isMobileView ? "mb-4 text-sm" : "mb-5 text-[15px]"}`}>
+                <p className={`animate-text-cascade-2 mt-1 italic text-[#737373] dark:text-[#a1a1aa] ${isMobileView ? "mb-4 text-sm" : "mb-5 text-[15px]"}`}>
                   {(page ? page.hint : p?.hint) || (preview ? "Description (optional)" : "")}
                 </p>
               )}
               {page ? (
-                <div className={`page-fields flex flex-col ${isMobileView ? "mt-3.5 gap-4" : "mt-5 gap-[22px]"}`}>{step.map((q, k) => (
-                  <div className="page-field min-w-0 text-cascade-3" key={q.id}>
-                    <label className={`block font-normal text-[#262627] dark:text-[#f2eff3] ${isMobileView ? "text-[15px]" : "text-lg"}`}>{q.label || "Untitled"}{q.mandatory && <span className="req text-[#e04f4f]"> *</span>}</label>
+                <div className={`flex flex-col ${isMobileView ? "mt-3.5 gap-4" : "mt-5 gap-[22px]"}`}>{step.map((q, k) => (
+                  <div className="min-w-0 animate-text-cascade-3" key={q.id}>
+                    <label className={`block font-normal text-[#262627] dark:text-[#f2eff3] ${isMobileView ? "text-[15px]" : "text-lg"}`}>{q.label || "Untitled"}{q.mandatory && <span className="text-[#e04f4f]"> *</span>}</label>
                     {q.hint && <div className="mt-0.5 text-sm italic text-[#737373] dark:text-[#a1a1aa]">{q.hint}</div>}
                     {field(q, k === 0)}
                     {errs[q.id] && <div className={ERR}>⚠ {errs[q.id]}</div>}
                   </div>))}</div>
-              ) : p && (<div className="min-w-0 text-cascade-3">{field(p, true)}{errs[p.id] && <div className={ERR}>⚠ {errs[p.id]}</div>}</div>)}
+              ) : p && (<div className="min-w-0 animate-text-cascade-3">{field(p, true)}{errs[p.id] && <div className={ERR}>⚠ {errs[p.id]}</div>}</div>)}
               {gerr && <div className={ERR}>⚠ {gerr}</div>}
             </div>
 
-            <div className={`actions text-cascade-4 ${isMobileView ? "mt-6 pt-2 pb-1 w-full shrink-0" : "mt-6 flex items-center gap-3.5"}`}>
+            <div className={`animate-text-cascade-4 ${isMobileView ? "mt-6 pt-2 pb-1 w-full shrink-0" : "mt-6 flex items-center gap-3.5"}`}>
               <button
                 className={`rounded-md border-0 bg-[#262627] font-semibold text-white shadow-sm transition hover:bg-[#181819] active:scale-[0.99] disabled:cursor-default disabled:opacity-50 dark:bg-[#39343d] dark:text-white dark:hover:bg-[#48434f] ${
                   isMobileView ? "w-full py-3 text-sm" : "px-5 py-2.5 text-sm active:scale-95"
@@ -333,24 +336,24 @@ export default function Runner({ inquiry, onSubmit, startAt = 0, preview, isMobi
                 {i === n - 1 ? "Submit" : "OK ✓"}
               </button>
               {!isMobileView && (
-                <span className="tip text-xs text-[#767676] dark:text-[#a1a1aa]">
+                <span className="text-xs text-[#767676] dark:text-[#a1a1aa]">
                   {i === n - 1 ? <>press <b>Ctrl + Enter ↵</b></> : <>press <b>Enter ↵</b></>}
                 </span>
               )}
             </div>
           </div>)}
         {n > 0 && i >= n && (
-          <div className="slide from-above flex w-full flex-col items-center justify-center py-8 text-center">
+          <div className="animate-from-above flex w-full max-w-[680px] flex-col items-center justify-center py-8 text-center">
             <div className="mb-5 grid size-16 place-items-center rounded-full border-2 border-[#262627] text-2xl font-bold dark:border-white">
               ✓
             </div>
-            <h2 className="q text-cascade-1 m-0 mb-2 text-[clamp(22px,3.2vw,30px)] font-normal leading-[1.25] text-[#262627] dark:text-[#f2eff3]">{inquiry.closing_heading || "Thanks for completing this form"}</h2>
-            <p className="hint text-cascade-2 mb-[22px] mt-0 text-base text-[#737373] dark:text-[#b4acb9]">{inquiry.closing_text || "Now create your own — it's free, easy & beautiful"}</p>
+            <h2 className="animate-text-cascade-1 m-0 mb-2 text-[clamp(22px,3.2vw,30px)] font-normal leading-[1.25] text-[#262627] dark:text-[#f2eff3]">{inquiry.closing_heading || "Thanks for completing this form"}</h2>
+            <p className="animate-text-cascade-2 mb-[22px] mt-0 text-base text-[#737373] dark:text-[#b4acb9]">{inquiry.closing_text || "Now create your own — it's free, easy & beautiful"}</p>
             {preview && <button className="rounded-md border-0 bg-[#262627] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#181819] active:scale-95 dark:bg-[#39343d] dark:text-white dark:hover:bg-[#48434f]" onClick={() => { setAns({}); setDir(-1); setI(0); }}>Restart preview</button>}
           </div>)}
       </div>
       {n > 0 && i < n && !isMobileView && (
-        <div className="nav absolute bottom-5 right-5 flex items-center gap-2">
+        <div className="absolute bottom-5 right-5 flex items-center gap-2">
           <div className="flex overflow-hidden rounded-md shadow-sm">
             <button className="flex h-8 w-8 items-center justify-center border-0 bg-[#d4d4d8] text-[#444] transition-colors hover:bg-[#c4c4c8] disabled:opacity-40 disabled:hover:bg-[#d4d4d8] dark:bg-[#38383e] dark:text-[#d5cfd8] dark:hover:bg-[#484852]" disabled={i === 0} onClick={back} aria-label="Previous question">
               <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>

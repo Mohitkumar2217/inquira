@@ -66,7 +66,7 @@ export default function Results() {
   const avgTime = "1m 24s";
 
   return (
-    <div className="min-h-screen bg-[var(--tf-panel-bg)] text-[var(--tf-text)] zoom-out-enter">
+    <div className="min-h-screen bg-[var(--tf-panel-bg)] text-[var(--tf-text)] animate-zoom-out-enter motion-reduce:animate-none">
       <header className="sticky top-0 z-[5] flex h-[60px] items-center justify-between gap-3 border-b border-[var(--tf-border)] bg-white px-6 dark:border-[#39353e] dark:bg-[#26232a] max-[620px]:px-3">
         <Link href="/" className="text-xl font-bold tracking-[-.5px] text-[var(--tf-text)]">Inquira</Link>
         <nav className="flex h-full items-center gap-1">

@@ -49,7 +49,7 @@ export default function NewForm() {
         </div>
       </header>
       <div className="grid flex-1 place-items-center overflow-hidden rounded-xl border border-[var(--tf-border)] bg-[var(--tf-panel-bg)] p-5 dark:bg-[#1d1b20]">
-        <div className={`w-full max-w-[640px] text-center ${isZoomingOut ? "zoom-out-exit" : "zoom-out-enter"}`}>
+        <div className={`w-full max-w-[640px] text-center motion-reduce:animate-none ${isZoomingOut ? "animate-zoom-out-exit" : "animate-zoom-out-enter"}`}>
           <div className="text-[#767676] dark:text-[#b4acb9]">Inquira AI</div>
           <h1 className="mb-[26px] text-[clamp(26px,4vw,36px)] font-medium tracking-[-.03em] text-[var(--tf-text)] dark:text-[#f2eff3]">What would you like to create?</h1>
           <div className="rounded-lg border-[3px] border-[#f1def6] bg-white p-[3px] text-left dark:bg-[#222225] dark:text-[#f4f4f5]">

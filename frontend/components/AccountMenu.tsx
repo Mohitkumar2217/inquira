@@ -24,13 +24,13 @@ export default function AccountMenu({ size = "md" }: Props) {
   }, [open]);
 
   const buttonClass = size === "sm"
-    ? "tf-avatar grid size-[30px] shrink-0 place-items-center rounded-full border-0 bg-[#f9d3da] text-xs font-semibold text-[#58444d] hover:opacity-90 active:scale-95 transition-transform duration-150 cursor-pointer"
-    : "tf-avatar grid h-10 w-10 shrink-0 place-items-center rounded-full border-0 bg-[#f9d3da] text-sm font-semibold text-[#58444d] hover:opacity-90 active:scale-95 transition-transform duration-150 cursor-pointer";
+    ? "grid size-[30px] shrink-0 place-items-center rounded-full border-0 bg-[#f9d3da] text-xs font-semibold text-[#58444d] hover:opacity-90 active:scale-95 transition-transform duration-150 cursor-pointer"
+    : "grid h-10 w-10 shrink-0 place-items-center rounded-full border-0 bg-[#f9d3da] text-sm font-semibold text-[#58444d] hover:opacity-90 active:scale-95 transition-transform duration-150 cursor-pointer";
 
   const menuTopClass = size === "sm" ? "top-[38px]" : "top-12";
 
   return (
-    <div className="tf-account-wrap relative">
+    <div className="relative">
       <button
         type="button"
         className={buttonClass}
@@ -45,8 +45,8 @@ export default function AccountMenu({ size = "md" }: Props) {
       {open && (
         <>
           <div className="fixed inset-0 z-20 bg-transparent" onClick={() => setOpen(false)} />
-          <div className={`tf-account-menu absolute right-0 ${menuTopClass} z-[22] w-[min(344px,calc(100vw-24px))] animate-dropdown-slide rounded-[18px] border border-[var(--tf-border)] bg-white px-[18px] py-5 text-[var(--tf-text)] shadow-[0_12px_36px_rgba(39,31,42,.16)] dark:border-[#39353e] dark:bg-[#26232a] max-[620px]:fixed max-[620px]:right-3 max-[620px]:top-14`}>
-            <div className="tf-account-profile flex items-center gap-3">
+          <div className={`absolute right-0 ${menuTopClass} z-[22] w-[min(344px,calc(100vw-24px))] origin-top-right animate-dropdown-slide rounded-[18px] border border-[var(--tf-border)] bg-white px-[18px] py-5 text-[var(--tf-text)] shadow-[0_12px_36px_rgba(39,31,42,.16)] dark:border-[#39353e] dark:bg-[#26232a] max-[620px]:fixed max-[620px]:right-3 max-[620px]:top-14`}>
+            <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#f9d3da] text-sm font-semibold text-[#58444d]">{USER.initials}</span>
               <div className="flex flex-col gap-0.5 text-left">
                 <b className="text-sm font-semibold text-[var(--tf-text)] dark:text-[#f2eff3]">{USER.name}</b>
