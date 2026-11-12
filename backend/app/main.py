@@ -3,14 +3,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from .config import init_db, settings
-from .controllers.form_controller import (
-    create_form,
-    get_form_by_id,
-    get_public_form,
-    list_forms,
-    submit_response,
-    update_form_questions,
-)
 from .controllers.inquiry_controller import (
     copy_to_workspace,
     create_inquiry,
@@ -105,10 +97,4 @@ __all__ = [
     "generate_test_response",
     "public_inquiry",
     "submit_reply",
-    "create_form",
-    "list_forms",
-    "get_public_form",
-    "get_form_by_id",
-    "update_form_questions",
-    "submit_response",
 ]

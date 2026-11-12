@@ -52,16 +52,6 @@ def _run_migrations() -> None:
             "order_index": "ALTER TABLE workspaces ADD COLUMN order_index INTEGER DEFAULT 0",
             "last_visited_at": f"ALTER TABLE workspaces ADD COLUMN last_visited_at {datetime_type}",
         },
-        "forms": {
-            "workspace_id": "ALTER TABLE forms ADD COLUMN workspace_id INTEGER REFERENCES workspaces(id)",
-            "theme": "ALTER TABLE forms ADD COLUMN theme VARCHAR(50) DEFAULT 'Pearl white'",
-        },
-        "questions": {
-            "properties": "ALTER TABLE questions ADD COLUMN properties JSON",
-            "logic_rules": "ALTER TABLE questions ADD COLUMN logic_rules JSON",
-            "choices": "ALTER TABLE questions ADD COLUMN choices JSON",
-            "hint": "ALTER TABLE questions ADD COLUMN hint TEXT DEFAULT ''",
-        },
     }
 
     with engine.begin() as connection:

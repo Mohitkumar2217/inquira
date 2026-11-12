@@ -315,12 +315,15 @@ python scratch/verify_e2e.py
 inquira/
 ├── backend/
 │   ├── app/
-│   │   ├── database.py      # SQLite engine, path resolution, PRAGMA foreign_keys=ON
-│   │   ├── main.py          # FastAPI routes, lifespan schema migrations & CORS
-│   │   ├── models.py        # Workspaces, UserPreferences, Inquiries, Prompts, Replies, ReplyItems
-│   │   ├── rules.py         # Server-side validation for all 19 question kinds
-│   │   ├── schemas.py       # Pydantic request/response models
-│   │   └── seed.py          # Automatic initial seed data
+│   │   ├── config/          # Env settings, SQLite/Postgres engine, migrations
+│   │   ├── controllers/     # FastAPI dependency-injection request handlers
+│   │   ├── lib/             # Validators (19 kinds), formatters, seed data
+│   │   ├── middleware/      # CORS policy & X-Process-Time-Ms timing/logging
+│   │   ├── models/          # Workspaces, UserPreferences, Inquiries, Prompts, Replies
+│   │   ├── routes/          # APIRouter bindings (/health, /api/workspaces, /api/inquiries, /api/public)
+│   │   ├── schemas/         # Pydantic v2 request/response DTOs
+│   │   ├── services/        # Business logic & SQLAlchemy transactions
+│   │   └── main.py          # FastAPI app factory & lifespan initialization
 │   ├── tests/
 │   │   ├── test_forms_api.py
 │   │   ├── test_pages.py

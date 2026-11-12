@@ -8,7 +8,6 @@ import AccountMenu from "@/components/AccountMenu";
 import { call, errorMessage, send } from "@/lib/api";
 import { toPrompts } from "@/lib/guess";
 import { Inquiry, PromptDTO } from "@/lib/types";
-import { USER } from "@/lib/user";
 
 export default function NewForm() {
   const router = useRouter();

@@ -1,7 +1,7 @@
 import random
 from datetime import datetime, timedelta
 
-from ..models import Answer, Form, FormResponse, Inquiry, Prompt, Question, Reply, ReplyItem, Workspace
+from ..models import Inquiry, Prompt, Reply, ReplyItem, Workspace
 
 
 def _make(db, slug, title, accent, prompts, workspace_id=None):
@@ -81,23 +81,6 @@ def seed_if_empty(db):
     db.add(draft)
     _fake_replies(db, a, 14, rng)
     _fake_replies(db, b, 6, rng)
-
-    if not db.query(Form).count():
-        f1 = Form(title="Product Feedback Form", is_published=True, workspace_id=pw.id)
-        q1 = Question(title="What is your full name?", question_type="short_text", is_required=True, order=0)
-        q2 = Question(title="What is your email address?", question_type="email", is_required=True, order=1)
-        q3 = Question(title="How satisfied are you with our product?", question_type="rating", is_required=False, order=2)
-        q4 = Question(title="Would you recommend us to a colleague?", question_type="yes_no", is_required=False, order=3)
-        f1.questions.extend([q1, q2, q3, q4])
-        db.add(f1)
-        db.flush()
-
-        r1 = FormResponse(form_id=f1.id)
-        r1.answers.append(Answer(question_id=q1.id, value="Alex Morgan"))
-        r1.answers.append(Answer(question_id=q2.id, value="alex@example.com"))
-        r1.answers.append(Answer(question_id=q3.id, value="5"))
-        r1.answers.append(Answer(question_id=q4.id, value="yes"))
-        db.add(r1)
 
     db.commit()
 
